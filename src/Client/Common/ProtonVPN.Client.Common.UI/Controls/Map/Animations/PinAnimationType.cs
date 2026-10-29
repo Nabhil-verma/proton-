@@ -21,22 +21,15 @@ namespace ProtonVPN.Client.Common.UI.Controls.Map.Animations;
 
 public enum PinAnimationType
 {
-    NormalLocationDisconnectedToOnHover,
     NormalLocationDisconnectedToConnecting,
-    NormalLocationOnHoverToDisconnected,
     NormalLocationConnectingToDisconnected,
     NormalLocationConnectedToDisconnected,
     NormalLocationConnectedToConnecting,
 
-    CurrentLocationDisconnectedToOnHover,
-    CurrentLocationOnHoverToDisconnected,
     CurrentLocationConnectingToDisconnected,
     CurrentLocationConnectedToConnecting,
     CurrentLocationDisconnectedToConnecting,
 
-    ConnectedToOnHover,
-    OnHoverToConnecting,
-    OnHoverToConnected,
     ConnectingToConnected,
     DisconnectedToCurrentLocation,
 }

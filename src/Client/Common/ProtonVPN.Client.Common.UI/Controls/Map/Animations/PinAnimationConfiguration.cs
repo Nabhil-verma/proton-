@@ -31,66 +31,6 @@ public class PinAnimationConfiguration
     {
         return animationType switch
         {
-            // NormalLocation: Disconnected -> OnHover
-            PinAnimationType.NormalLocationDisconnectedToOnHover => new PinAnimationConfiguration
-            {
-                TransparentCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.TRANSPARENT_CIRCLE_RADIUS_DEFAULT,
-                    End = AnimatedCircleStyle.TRANSPARENT_CIRCLE_RADIUS_HOVER
-                },
-                NeutralCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.NEUTRAL_CIRCLE_RADIUS_DEFAULT,
-                    End = AnimatedCircleStyle.NEUTRAL_CIRCLE_RADIUS_HOVER
-                },
-                CenterCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_DEFAULT,
-                    End = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_HOVER
-                }
-            },
-
-            // NormalLocation: OnHover -> Disconnected
-            PinAnimationType.NormalLocationOnHoverToDisconnected => new PinAnimationConfiguration
-            {
-                TransparentCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.TRANSPARENT_CIRCLE_RADIUS_HOVER,
-                    End = AnimatedCircleStyle.TRANSPARENT_CIRCLE_RADIUS_DEFAULT
-                },
-                NeutralCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.NEUTRAL_CIRCLE_RADIUS_HOVER,
-                    End = AnimatedCircleStyle.NEUTRAL_CIRCLE_RADIUS_DEFAULT
-                },
-                CenterCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_HOVER,
-                    End = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_DEFAULT
-                }
-            },
-
-            // OnHover -> Connecting
-            PinAnimationType.OnHoverToConnecting => new PinAnimationConfiguration
-            {
-                TransparentCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.TRANSPARENT_CIRCLE_RADIUS_HOVER,
-                    End = AnimatedCircleStyle.TRANSPARENT_CIRCLE_RADIUS_CONNECTING
-                },
-                NeutralCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.NEUTRAL_CIRCLE_RADIUS_HOVER,
-                    End = AnimatedCircleStyle.NEUTRAL_CIRCLE_RADIUS_CONNECTING
-                },
-                CenterCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_HOVER,
-                    End = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_CONNECTING
-                }
-            },
-
             // NormalLocation: Connecting -> Disconnected
             PinAnimationType.NormalLocationConnectingToDisconnected => new PinAnimationConfiguration
             {
@@ -148,46 +88,6 @@ public class PinAnimationConfiguration
                 {
                     Start = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_ACTIVE,
                     End = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_CONNECTING
-                }
-            },
-
-            // CurrentLocation: Disconnected -> OnHover
-            PinAnimationType.CurrentLocationDisconnectedToOnHover => new PinAnimationConfiguration
-            {
-                TransparentCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.TRANSPARENT_CIRCLE_RADIUS_ACTIVE,
-                    End = AnimatedCircleStyle.TRANSPARENT_CIRCLE_RADIUS_DEFAULT
-                },
-                NeutralCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.NEUTRAL_CIRCLE_RADIUS_ACTIVE,
-                    End = AnimatedCircleStyle.NEUTRAL_CIRCLE_RADIUS_HOVER
-                },
-                CenterCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_ACTIVE,
-                    End = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_HOVER
-                }
-            },
-
-            // CurrentLocation: OnHover -> Disconnected
-            PinAnimationType.CurrentLocationOnHoverToDisconnected => new PinAnimationConfiguration
-            {
-                TransparentCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.TRANSPARENT_CIRCLE_RADIUS_HOVER,
-                    End = AnimatedCircleStyle.TRANSPARENT_CIRCLE_RADIUS_ACTIVE
-                },
-                NeutralCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.NEUTRAL_CIRCLE_RADIUS_HOVER,
-                    End = AnimatedCircleStyle.NEUTRAL_CIRCLE_RADIUS_ACTIVE
-                },
-                CenterCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_HOVER,
-                    End = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_ACTIVE
                 }
             },
 
@@ -268,46 +168,6 @@ public class PinAnimationConfiguration
                 {
                     Start = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_ACTIVE,
                     End = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_CONNECTING
-                }
-            },
-
-            // Connected -> OnHover
-            PinAnimationType.ConnectedToOnHover => new PinAnimationConfiguration
-            {
-                TransparentCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.TRANSPARENT_CIRCLE_RADIUS_ACTIVE,
-                    End = AnimatedCircleStyle.TRANSPARENT_CIRCLE_RADIUS_HOVER
-                },
-                NeutralCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.NEUTRAL_CIRCLE_RADIUS_ACTIVE,
-                    End = AnimatedCircleStyle.NEUTRAL_CIRCLE_RADIUS_HOVER
-                },
-                CenterCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_ACTIVE,
-                    End = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_HOVER
-                }
-            },
-
-            // OnHover -> Connected
-            PinAnimationType.OnHoverToConnected => new PinAnimationConfiguration
-            {
-                TransparentCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.TRANSPARENT_CIRCLE_RADIUS_HOVER,
-                    End = AnimatedCircleStyle.TRANSPARENT_CIRCLE_RADIUS_ACTIVE
-                },
-                NeutralCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.NEUTRAL_CIRCLE_RADIUS_HOVER,
-                    End = AnimatedCircleStyle.NEUTRAL_CIRCLE_RADIUS_ACTIVE
-                },
-                CenterCircle = new CircleAnimationValues
-                {
-                    Start = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_HOVER,
-                    End = AnimatedCircleStyle.CENTER_CIRCLE_RADIUS_ACTIVE
                 }
             },
 

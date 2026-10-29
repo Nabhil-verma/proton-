@@ -122,43 +122,8 @@ public static class FeatureExtensions
         }
     }
 
-    public static PinAnimationType? GetHoverLostAnimationType(this IFeature feature)
-    {
-        if (feature.IsConnected())
-        {
-            return PinAnimationType.OnHoverToConnected;
-        }
-        else if (feature.IsConnecting())
-        {
-            return null;
-        }
-        else
-        {
-            return feature.IsCurrentCountry()
-                ? PinAnimationType.CurrentLocationOnHoverToDisconnected
-                : PinAnimationType.NormalLocationOnHoverToDisconnected;
-        }
-    }
-
-    public static PinAnimationType GetOnHoverAnimationType(this IFeature feature)
-    {
-        if (feature.IsConnected())
-        {
-            return PinAnimationType.ConnectedToOnHover;
-        }
-
-        return feature.IsCurrentCountry()
-            ? PinAnimationType.CurrentLocationDisconnectedToOnHover
-            : PinAnimationType.NormalLocationDisconnectedToOnHover;
-    }
-
     public static PinAnimationType GetConnectingAnimationType(this IFeature feature)
     {
-        if (feature.IsOnHover())
-        {
-            return PinAnimationType.OnHoverToConnecting;
-        }
-
         if (feature.IsCurrentCountry())
         {
             return feature.IsConnected()
