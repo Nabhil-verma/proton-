@@ -91,13 +91,21 @@ public class MiscTests : FreshSessionSetUp
         HomeRobot
             .Verify.ConnectionCardTitleEquals(fastestCountryConnectionCardTitle)
                    .ConnectionCardDescriptionContains(fastestCountryConnectionCardDescription)
-                   .ConnectionPreferencesDropdownContains([connectionPreferecesDropdownOption])
                    .ConnectionCardConnectButtonEquals(connectButton)
                    .ProtectionStatusEquals(unprotectedStatus)
                    .LocationDetailsContains(yourIpText)
                    .LocationDetailsContains(yourCountryText)
                    .LocationDetailsContains(yourProviderText);
         //TODO: Map pin tooltip assert: "Connect - [Country]"
+
+        // The default connection list is no longer on the home card, so its localization is verified in settings.
+        SettingRobot
+            .OpenSettings()
+            .OpenConnectionPreferencesSettingsCard();
+        HomeRobot
+            .Verify.ConnectionPreferencesDropdownContains([connectionPreferecesDropdownOption]);
+        SettingRobot
+            .CloseSettings();
 
         FeaturesRobot
             .Verify.NetShieldFeatureNameEquals(netShieldFeatureName)

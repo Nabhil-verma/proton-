@@ -429,7 +429,8 @@ public sealed partial class MapControl
 
     private void HandleMapClick(object? s, MapInfoEventArgs a)
     {
-        if (a.MapInfo?.WorldPosition == null)
+        // Clicking a country only has an effect when the map is allowed to trigger a connection.
+        if (ConnectCommand is null || a.MapInfo?.WorldPosition == null)
         {
             return;
         }
@@ -650,7 +651,8 @@ public sealed partial class MapControl
 
     private void ActivateCountry(GeometryFeature feature)
     {
-        if (feature.IsConnecting())
+        // Without a connect command, hovering must not suggest that a country can be selected.
+        if (ConnectCommand is null || feature.IsConnecting())
         {
             return;
         }

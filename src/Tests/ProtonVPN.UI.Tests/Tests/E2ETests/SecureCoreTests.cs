@@ -34,6 +34,7 @@ public class SecureCoreTests : FreshSessionSetUp
     private const string PROFILE_NAME = "Profile B";
 
     private string? _ipAddressNotConnected = null;
+    private static readonly string _fastestCountry = LanguageHelper.GetTranslatedString("Country_Fastest");
     private const Country VIA_COUNTRY_ICELAND = Country.Iceland;
     private const Country VIA_COUNTRY_SWEDEN = Country.Sweden;
     private const Country COUNTRY_NAME = Country.Australia;
@@ -99,14 +100,17 @@ public class SecureCoreTests : FreshSessionSetUp
     [Property("TestCaseId", "602372,602373")]
     [Category("ARM")]
     [Category("SMOKE_1")]
-    public void QuickConnectToSecureCoreServerAndDisconnect()
+    public void QuickConnectIgnoresSecureCoreDefaultConnection()
     {
         AddConnectionInRecents();
 
+        // A Secure Core connection can no longer be set as the home default, so connecting from the
+        // connection card must not reuse the recent Secure Core entry.
         HomeRobot
-            .SelectDefaultConnectionCountry(COUNTRY_NAME, TestConstants.ViaPrefix + VIA_COUNTRY_ICELAND.GetName())
             .ConnectViaConnectionCard()
-            .Verify.IsConnected();
+            .Verify.IsConnected()
+                   .ConnectionCardTitleEquals(_fastestCountry)
+                   .ConnectionCardDescriptionDoesNotContainOneOf([VIA_COUNTRY_ICELAND]);
 
         string ipAfterConnection = NetworkUtils.GetIpAddressWithRetry();
         HomeRobot

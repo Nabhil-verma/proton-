@@ -28,6 +28,7 @@ public interface IRecentConnectionsManager
     IOrderedEnumerable<IRecentConnection> GetRecentConnections();
     IRecentConnection? GetMostRecentConnection();
     IConnectionIntent GetDefaultConnection();
+    IConnectionIntent GetFastestConnection();
     IRecentConnection? GetById(Guid id);
     void OverrideRecentConnections(List<IConnectionIntent> connectionIntents, IConnectionIntent? quickConnectionIntent = null);
     void Pin(IRecentConnection recentConnection);

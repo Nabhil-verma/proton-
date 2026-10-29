@@ -18,25 +18,19 @@
  */
 
 using CommunityToolkit.Mvvm.ComponentModel;
-using CommunityToolkit.Mvvm.Input;
 using ProtonVPN.Client.Common.UI.Controls.Map;
 using ProtonVPN.Client.Contracts.Messages;
 using ProtonVPN.Client.Core.Bases;
 using ProtonVPN.Client.Core.Bases.ViewModels;
-using ProtonVPN.Client.Core.Services.Activation;
 using ProtonVPN.Client.EventMessaging.Contracts;
 using ProtonVPN.Client.Localization.Extensions;
 using ProtonVPN.Client.Logic.Connection.Contracts;
 using ProtonVPN.Client.Logic.Connection.Contracts.Enums;
 using ProtonVPN.Client.Logic.Connection.Contracts.Messages;
-using ProtonVPN.Client.Logic.Connection.Contracts.Models.Intents;
-using ProtonVPN.Client.Logic.Connection.Contracts.Models.Intents.Locations.Countries;
 using ProtonVPN.Client.Logic.Servers.Cache;
 using ProtonVPN.Client.Logic.Servers.Contracts.Messages;
 using ProtonVPN.Client.Settings.Contracts;
 using ProtonVPN.Client.Settings.Contracts.Messages;
-using ProtonVPN.StatisticalEvents.Contracts;
-using ProtonVPN.StatisticalEvents.Contracts.Dimensions;
 
 namespace ProtonVPN.Client.UI.Main.Map;
 
@@ -50,8 +44,6 @@ public partial class MapComponentViewModel : ActivatableViewModelBase,
     private readonly IServersCache _serversCache;
     private readonly IConnectionManager _connectionManager;
     private readonly ICoordinatesProvider _coordinatesProvider;
-    private readonly IUpsellCarouselWindowActivator _upsellCarouselWindowActivator;
-    private readonly IMainWindowOverlayActivator _mainWindowOverlayActivator;
 
     [ObservableProperty]
     private bool _isMainWindowVisible;
@@ -71,8 +63,6 @@ public partial class MapComponentViewModel : ActivatableViewModelBase,
         IServersCache serversCache,
         IConnectionManager connectionManager,
         ICoordinatesProvider coordinatesProvider,
-        IUpsellCarouselWindowActivator upsellCarouselWindowActivator,
-        IMainWindowOverlayActivator mainWindowOverlayActivator,
         IViewModelHelper viewModelHelper)
         : base(viewModelHelper)
     {
@@ -80,8 +70,6 @@ public partial class MapComponentViewModel : ActivatableViewModelBase,
         _serversCache = serversCache;
         _connectionManager = connectionManager;
         _coordinatesProvider = coordinatesProvider;
-        _upsellCarouselWindowActivator = upsellCarouselWindowActivator;
-        _mainWindowOverlayActivator = mainWindowOverlayActivator;
     }
 
     protected override void OnActivated()
@@ -179,26 +167,5 @@ public partial class MapComponentViewModel : ActivatableViewModelBase,
             })
             .OfType<Country>()
             .ToList();
-    }
-
-    [RelayCommand]
-    private Task ConnectAsync(Country country)
-    {
-        if (!_settings.VpnPlan.IsPaid)
-        {
-            return _upsellCarouselWindowActivator.ActivateAsync(new UpsellModalContext(ModalSource.Countries, ModalTrigger.Map, country?.Code));
-        }
-
-        if (country == null || country.IsUnderMaintenance)
-        {
-            return _mainWindowOverlayActivator.ShowMessageAsync(new()
-            {
-                Title =  Localizer.Get("Connections_Country_UnderMaintenance_Title"),
-                Message =  Localizer.Get("Connections_Country_UnderMaintenance"),
-                PrimaryButtonText = Localizer.Get("Common_Actions_GotIt"),
-            });
-        }
-
-        return _connectionManager.ConnectAsync(VpnTriggerDimension.Map, new ConnectionIntent(SingleCountryLocationIntent.From(country.Code)));
     }
 }

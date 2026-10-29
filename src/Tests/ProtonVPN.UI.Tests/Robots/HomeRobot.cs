@@ -22,6 +22,7 @@ using System.Linq;
 using System.Threading;
 using System.Collections.Generic;
 using FlaUI.Core.Input;
+using FlaUI.Core.WindowsAPI;
 using NUnit.Framework;
 using ProtonVPN.UI.Tests.Enums;
 using ProtonVPN.UI.Tests.UiTools;
@@ -44,9 +45,6 @@ public class HomeRobot
     private static readonly string _upgradeYourServerLabelTranslated = LanguageHelper.GetTranslatedString("UpsellBanner_WrongCountry_Description");
     private static readonly string _serverChangesUpsellLabelTranslated = LanguageHelper.GetTranslatedString("Dialogs_ChangeServer_GetUnlimitedServerChanges");
     private static readonly string _upgradeButtonTranslated = LanguageHelper.GetTranslatedString("Common_Actions_Upgrade");
-    private static readonly string _fastestCountryOptionTranslated = LanguageHelper.GetTranslatedString("Country_Fastest");
-    private static readonly string _randomCountryOptionTranslated = LanguageHelper.GetTranslatedString("Country_Random");
-    private static readonly string _lastConnectionOptionTranslated = LanguageHelper.GetTranslatedString("Settings_Connection_Default_Last");
     private static readonly string _wireGuardConnectionErrorPanelTitleTranslated = LanguageHelper.GetTranslatedString("Connection_Error_ConflictingAdapter_Title");
     private static readonly string _wireGuardConnectionErrorPanelDescriptionTranslated = LanguageHelper.GetTranslatedString("Connection_Error_ConflictingAdapter_Description") + "\r\n- WireGuard Tunnel (wg0)";
 
@@ -66,10 +64,6 @@ public class HomeRobot
     protected Element UpgradeYourServerLabel = Element.ByName(_upgradeYourServerLabelTranslated);
     protected Element ServerChangesUpsellLabel = Element.ByName(_serverChangesUpsellLabelTranslated);
     protected Element UpgradeButton = Element.ByName(_upgradeButtonTranslated);
-
-    protected Element FastestCountryOption = Element.ByName(_fastestCountryOptionTranslated);
-    protected Element RandomCountryOption = Element.ByName(_randomCountryOptionTranslated);
-    protected Element LastConnectionOption = Element.ByName(_lastConnectionOptionTranslated);
 
     protected Element ConnectionErrorPanel = Element.ByAutomationId("ConnectionErrorPanel");
     protected Element WireGuardConnectionErrorPanelTitle => ConnectionErrorPanel.FindChild(Element.ByName(_wireGuardConnectionErrorPanelTitleTranslated));
@@ -235,33 +229,6 @@ public class HomeRobot
         return this;
     }
 
-    public HomeRobot SelectDefaultConnectionOption(VpnConnectionOption option)
-    {
-        DefaultConnectionSelectorButton.Click();
-        Thread.Sleep(TestConstants.AnimationDelay);
-
-        string optionName = option switch
-        {
-            VpnConnectionOption.Fastest => LanguageHelper.GetTranslatedString("Settings_Connection_Default_Fastest"),
-            VpnConnectionOption.Random => LanguageHelper.GetTranslatedString("Settings_Connection_Default_Random"),
-            VpnConnectionOption.Last => LanguageHelper.GetTranslatedString("Settings_Connection_Default_Last"),
-            _ => throw new NotImplementedException($"VpnConnectionOption '{option}' is not supported on the home page ComboBox."),
-        };
-
-        Element.ByName(optionName).Click();
-        Thread.Sleep(TestConstants.AnimationDelay);
-
-        return this;
-    }
-
-    public HomeRobot SelectDefaultConnectionCountry(Country countryName, string? specificInfo = null)
-    {
-        DefaultConnectionSelectorButton.Click();
-        Thread.Sleep(TestConstants.AnimationDelay);
-        DefaultConnectionDropdown.SelectDropdownItem(countryName.GetName(), specificInfo);
-        return this;
-    }
-
     public HomeRobot CloseConnectionError()
     {
         Thread.Sleep(TestConstants.TwoSecondsTimeout);
@@ -318,18 +285,6 @@ public class HomeRobot
                 ProtectedLabelAdvancedKillSwitch.DoesNotExist();
             }
             ConnectionCardConnectButton.WaitUntilDisplayed();
-            return this;
-        }
-
-        public Verifications AssertAllVpnConnectionOptions()
-        {
-            DefaultConnectionSelectorButton.Click();
-            Thread.Sleep(TestConstants.AnimationDelay);
-
-            FastestCountryOption.WaitUntilDisplayed();
-            RandomCountryOption.WaitUntilDisplayed();
-            LastConnectionOption.WaitUntilDisplayed();
-            Mouse.Click();
             return this;
         }
 
@@ -398,6 +353,12 @@ public class HomeRobot
             return this;
         }
 
+        public Verifications IsDefaultConnectionSelectorNotDisplayed()
+        {
+            DefaultConnectionSelectorButton.DoesNotExist();
+            return this;
+        }
+
         public Verifications ConnectionCardDescriptionContainsOneOf(Country[] countries)
         {
             ConnectionCardDescription.TextContainsOneOf(countries);
@@ -416,15 +377,15 @@ public class HomeRobot
             return this;
         }
 
-        public Verifications ConnectionPreferencesDropdownContains(string[] options, bool isOnConnectionPreferencesPage = false)
+        public Verifications ConnectionPreferencesDropdownContains(string[] options)
         {
-            VerifyDropdownOptions(options, shouldContain: true, isOnConnectionPreferencesPage);
+            VerifyDropdownOptions(options, shouldContain: true);
             return this;
         }
 
-        public Verifications ConnectionPreferencesDropdownDoesNotContain(string[] options, bool isOnConnectionPreferencesPage = false)
+        public Verifications ConnectionPreferencesDropdownDoesNotContain(string[] options)
         {
-            VerifyDropdownOptions(options, shouldContain: false, isOnConnectionPreferencesPage);
+            VerifyDropdownOptions(options, shouldContain: false);
             return this;
         }
 
@@ -513,25 +474,19 @@ public class HomeRobot
             return this;
         }
 
-        private List<string> OpenDropdownAndGetTexts(bool isOnConnectionPreferencesPage)
+        private List<string> OpenDropdownAndGetTexts()
         {
-            if (isOnConnectionPreferencesPage)
-            {
-                ConnectionPreferencesPage.FindDescendant(DefaultConnectionSelectorButton).BoundingRectangleMouseClick();
-            }
-            else
-            {
-                DefaultConnectionSelectorButton.Click();
-            }
+            // The default connection list only exists on the connection preferences settings page.
+            ConnectionPreferencesPage.FindDescendant(DefaultConnectionSelectorButton).BoundingRectangleMouseClick();
 
             Thread.Sleep(TestConstants.AnimationDelay);
 
             return DefaultConnectionDropdown.GetAllChildrenNames();
         }
 
-        private void VerifyDropdownOptions(string[] options, bool shouldContain, bool isOnConnectionPreferencesPage)
+        private void VerifyDropdownOptions(string[] options, bool shouldContain)
         {
-            List<string> dropdownTexts = OpenDropdownAndGetTexts(isOnConnectionPreferencesPage);
+            List<string> dropdownTexts = OpenDropdownAndGetTexts();
 
             foreach (string optionName in options)
             {
@@ -542,7 +497,9 @@ public class HomeRobot
             }
 
             Thread.Sleep(TestConstants.AnimationDelay);
-            ConnectionCardTitle.Click();
+
+            // The dropdown lives on the settings page, so dismiss it where it was opened.
+            Keyboard.Press(VirtualKeyShort.ESCAPE);
         }
     }
 

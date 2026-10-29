@@ -144,6 +144,23 @@ public class RecentConnectionsManager : IRecentConnectionsManager,
         };
     }
 
+    public IConnectionIntent GetFastestConnection()
+    {
+        if (!_settings.VpnPlan.IsPaid)
+        {
+            return ConnectionIntent.FreeDefault;
+        }
+
+        Gateway? gateway = _serversLoader.GetGateways().FirstOrDefault();
+
+        if (gateway is not null && !_serversLoader.HasAnyCountries())
+        {
+            return new ConnectionIntent(SingleGatewayLocationIntent.From(gateway.Name), new B2BFeatureIntent());
+        }
+
+        return ConnectionIntent.Default;
+    }
+
     public IRecentConnection? GetById(Guid id)
     {
         return _recentConnections.FirstOrDefault(c => c.Id == id);

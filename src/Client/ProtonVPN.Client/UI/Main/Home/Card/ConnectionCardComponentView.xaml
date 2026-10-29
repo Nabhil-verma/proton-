@@ -24,7 +24,6 @@ along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
              xmlns:controls="using:CommunityToolkit.WinUI.Controls"
              xmlns:custom="using:ProtonVPN.Client.Common.UI.Controls.Custom"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-             xmlns:dc="using:ProtonVPN.Client.UI.Main.Home.Card.DefaultConnections"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
              xmlns:pathicons="using:ProtonVPN.Client.Common.UI.Assets.Icons.PathIcons"
              xmlns:upsell="using:ProtonVPN.Client.UI.Main.Home.Upsell"
@@ -94,12 +93,6 @@ along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
                        TextTrimming="CharacterEllipsis"
                        TextWrapping="WrapWholeWords" />
 
-            <dc:DefaultConnectionSelectorView x:Name="DefaultConnectionSelector"
-                                              Grid.Column="3"
-                                              Margin="-6,8,0,0"
-                                              VerticalAlignment="Top"
-                                              ToolTipService.ToolTip="{x:Bind ViewModel.Localizer.Get('Home_ConnectionCard_ChangeDefaultConnection')}"
-                                              Visibility="{x:Bind ViewModel.IsChangeDefaultConnectionOptionVisible}" />
         </Grid>
 
         <Grid Margin="0,8,0,0"

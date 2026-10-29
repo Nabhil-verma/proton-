@@ -40,7 +40,6 @@ public class TrayTests : BaseTest
 
     private const DefaultProfile PROFILE_NAME = DefaultProfile.StreamingUS;
 
-    private static readonly string _randomCountry = LanguageHelper.GetTranslatedString("Country_Random");
     private static readonly string _fastestCountry = LanguageHelper.GetTranslatedString("Country_Fastest");
 
 
@@ -79,14 +78,15 @@ public class TrayTests : BaseTest
     [Test, Order(1)]
     [Property("TestCaseId", "609946")]
     [Retry(3)]
-    public void ChangeDefaultConnectionFromTray()
+    public void DefaultConnectionCanNoLongerBeChangedFromTray()
     {
         using (TrayApp)
         {
+            // The connection card no longer offers a default connection picker: it always targets
+            // the fastest server, so there is no connection option left to change here.
             HomeRobot
-                .Verify.AssertAllVpnConnectionOptions()
-                .SelectDefaultConnectionOption(VpnConnectionOption.Random)
-                .Verify.ConnectionCardTitleEquals(_randomCountry);
+                .Verify.IsDefaultConnectionSelectorNotDisplayed()
+                       .ConnectionCardTitleEquals(_fastestCountry);
         }
     }
 
