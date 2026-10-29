@@ -25,7 +25,6 @@ using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Threading.Tasks;
-using System.Windows.Input;
 using Mapsui;
 using Mapsui.Animations;
 using Mapsui.Extensions;
@@ -36,7 +35,6 @@ using Mapsui.Nts.Providers;
 using Mapsui.Providers;
 using Mapsui.Styles;
 using Mapsui.Utilities;
-using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -83,12 +81,6 @@ public sealed partial class MapControl
         typeof(Country),
         typeof(MapControl),
         new PropertyMetadata(null, OnCurrentCountryChanged));
-
-    public static readonly DependencyProperty ConnectCommandProperty = DependencyProperty.Register(
-        nameof(ConnectCommand),
-        typeof(ICommand),
-        typeof(MapControl),
-        new PropertyMetadata(default));
 
     public static readonly DependencyProperty IsConnectingProperty = DependencyProperty.Register(
         nameof(IsConnecting),
@@ -138,12 +130,6 @@ public sealed partial class MapControl
         typeof(MapControl),
         new PropertyMetadata(default, OnMapOffsetChanged));
 
-    public static readonly DependencyProperty ConnectPhraseProperty = DependencyProperty.Register(
-        nameof(ConnectPhrase),
-        typeof(string),
-        typeof(MapControl),
-        new PropertyMetadata(default, OnConnectPhraseChanged));
-
     public List<Country> Countries
     {
         get => (List<Country>)GetValue(CountriesProperty);
@@ -154,12 +140,6 @@ public sealed partial class MapControl
     {
         get => (Country?)GetValue(CurrentCountryProperty);
         set => SetValue(CurrentCountryProperty, value);
-    }
-
-    public ICommand ConnectCommand
-    {
-        get => (ICommand)GetValue(ConnectCommandProperty);
-        set => SetValue(ConnectCommandProperty, value);
     }
 
     public bool IsConnecting
@@ -207,12 +187,6 @@ public sealed partial class MapControl
     {
         get => (double)GetValue(TitleBarHeightProperty);
         set => SetValue(TitleBarHeightProperty, value);
-    }
-
-    public string ConnectPhrase
-    {
-        get => (string)GetValue(ConnectPhraseProperty);
-        set => SetValue(ConnectPhraseProperty, value);
     }
 
     private static Color _defaultFillColor = Color.FromArgb(255, 53, 49, 64);
@@ -264,22 +238,15 @@ public sealed partial class MapControl
 
     private ILayer? _pinsLayer;
     private ILayer? _countriesLayer;
-    private CountryCallout _countryCallout;
-    private GeometryFeature? _selectedPin;
     private Windows.Foundation.Point _currentMousePosition;
 
     private AnimationEntry<double>? _pinFadeAnimation;
     private readonly ConcurrentDictionary<AnimatedCircleStyle, List<AnimationEntry<AnimatedCircleStyle>>> _activeAnimations = [];
     private readonly AnimatedCirclesStyleSkiaRenderer _animatedCirclesStyleSkiaRenderer = new();
 
-    private readonly InputSystemCursor _handCursor = InputSystemCursor.Create(InputSystemCursorShape.Hand);
-
     public MapControl()
     {
         InitializeComponent();
-
-        _countryCallout = new CountryCallout();
-        _countryCallout.LayoutUpdated += OnCountryCalloutLayoutUpdated;
 
         _countriesLayer = GetWorldMapLayerAsync().Result;
         _map.Layers.Add(_countriesLayer);
@@ -292,9 +259,7 @@ public sealed partial class MapControl
         _map.Navigator.MouseWheelAnimation.Duration = ZOOM_ANIMATION_DURATION_IN_MS;
         _map.Home = (Navigator n) => n.ZoomToBox(_mapBounds);
 
-        _map.Info += HandleMapClick;
         _map.Navigator.ViewportChanged += OnViewportChanged;
-        MapCanvas.Children.Add(_countryCallout);
         Map.Renderer.StyleRenderers.Add(typeof(AnimatedCircleStyle), _animatedCirclesStyleSkiaRenderer);
 
         Map.ManipulationMode = ManipulationModes.TranslateX | ManipulationModes.TranslateY | ManipulationModes.TranslateInertia;
@@ -427,45 +392,9 @@ public sealed partial class MapControl
         InvalidateCurrentCountry();
     }
 
-    private void HandleMapClick(object? s, MapInfoEventArgs a)
-    {
-        // Clicking a country only has an effect when the map is allowed to trigger a connection.
-        if (ConnectCommand is null || a.MapInfo?.WorldPosition == null)
-        {
-            return;
-        }
-
-        MRect searchArea = GetMouseBufferBounds();
-        List<IFeature> pins = GetAllPins();
-        foreach (GeometryFeature feature in pins.Cast<GeometryFeature>())
-        {
-            if (feature.Geometry is Point point &&
-                searchArea.Contains(point.ToMPoint()) &&
-                Countries.FirstOrDefault(c => c.Code == feature.GetCountryCode()) is Country country)
-            {
-                ConnectCommand.Execute(country);
-                break;
-            }
-        }
-    }
-
-    private MRect GetMouseBufferBounds()
-    {
-        MPoint mousePosition = _map.Navigator.Viewport.ScreenToWorld(_currentMousePosition.X, _currentMousePosition.Y);
-        double buffer = 15 * _map.Navigator.Viewport.Resolution;
-
-        return new MRect(
-            mousePosition.X - buffer,
-            mousePosition.Y - buffer,
-            mousePosition.X + buffer,
-            mousePosition.Y + buffer
-        );
-    }
-
     private void OnManipulationStarted(object sender, ManipulationStartedRoutedEventArgs e)
     {
         _isManipulationRunning = true;
-        _countryCallout.Hide();
     }
 
     private void OnManipulationInertiaStarted(object sender, ManipulationInertiaStartingRoutedEventArgs e)
@@ -491,23 +420,6 @@ public sealed partial class MapControl
         e.Handled = true;
     }
 
-    private void OnCountryCalloutLayoutUpdated(object? sender, object e)
-    {
-        if (_countryCallout.Country == null)
-        {
-            return;
-        }
-
-        MPoint point = _countryCallout.Country.GetMapPoint();
-        MPoint screenPosition = _map.Navigator.Viewport.WorldToScreen(point);
-
-        double left = screenPosition.X - _countryCallout.ActualWidth / 2.0;
-        double top = screenPosition.Y - _countryCallout.ActualHeight - 20;
-
-        Canvas.SetLeft(_countryCallout, left);
-        Canvas.SetTop(_countryCallout, top);
-    }
-
     private void OnViewportChanged(object? sender, PropertyChangedEventArgs e)
     {
         if (_isManipulationRunning)
@@ -516,8 +428,6 @@ public sealed partial class MapControl
         }
 
         InvalidateZoomLevels();
-
-        DispatcherQueue?.TryEnqueue(ToggleFeatures);
     }
 
     private bool _isMouseOnViewport;
@@ -553,8 +463,6 @@ public sealed partial class MapControl
             _fadeInAnimationStarted = false;
             StartFadeOutPinAnimation();
         }
-
-        ToggleFeatures();
     }
 
     private void OnPointerReleased(object sender, PointerRoutedEventArgs e)
@@ -584,99 +492,6 @@ public sealed partial class MapControl
         return viewportRect.Contains(mousePosition);
     }
 
-    private void ToggleFeatures()
-    {
-        if (_isUnloaded)
-        {
-            return;
-        }
-
-        MRect searchArea = GetMouseBufferBounds();
-        MPoint mousePosition = new(_currentMousePosition.X, _currentMousePosition.Y);
-
-        IEnumerable<IFeature> features = GetPinFeature(searchArea);
-
-        GeometryFeature? closestFeature = null;
-        double minDistance = double.MaxValue;
-
-        foreach (GeometryFeature feature in features.Cast<GeometryFeature>())
-        {
-            if (feature.Geometry is Point point)
-            {
-                MPoint pinPosition = point.ToMPoint();
-                if (searchArea.Contains(pinPosition))
-                {
-                    double distance = mousePosition.Distance(pinPosition);
-                    if (distance < minDistance)
-                    {
-                        minDistance = distance;
-                        closestFeature = feature;
-                    }
-                }
-            }
-        }
-
-        if (closestFeature == null || !_isMouseOnViewport)
-        {
-            if (_selectedPin != null)
-            {
-                _selectedPin.SetIsOnHover(false);
-                StartPinScaleAnimations(_selectedPin, _selectedPin.GetHoverLostAnimationType());
-            }
-            _selectedPin = null;
-
-            foreach (GeometryFeature feature in features.Cast<GeometryFeature>().Where(f => f.IsOnHover()))
-            {
-                feature.SetIsOnHover(false);
-                StartPinScaleAnimations(feature, feature.GetHoverLostAnimationType());
-            }
-
-            OverrideCursor(null);
-            _countryCallout.Hide();
-        }
-        else if (closestFeature != _selectedPin)
-        {
-            if (_selectedPin != null)
-            {
-                _selectedPin.SetIsOnHover(false);
-                StartPinScaleAnimations(_selectedPin, _selectedPin.GetHoverLostAnimationType());
-            }
-
-            _selectedPin = closestFeature;
-            ActivateCountry(_selectedPin);
-        }
-
-        _map.RefreshGraphics();
-    }
-
-    private void ActivateCountry(GeometryFeature feature)
-    {
-        // Without a connect command, hovering must not suggest that a country can be selected.
-        if (ConnectCommand is null || feature.IsConnecting())
-        {
-            return;
-        }
-
-        string? countryCode = feature.GetCountryCode();
-        if (!string.IsNullOrEmpty(countryCode))
-        {
-            Country? country = Countries.FirstOrDefault(c => c.Code == countryCode);
-            if (country != null)
-            {
-                feature.SetIsOnHover(true);
-
-                _countryCallout.FlowDirection = this.FlowDirection;
-                _countryCallout.Show(country);
-
-                OverrideCursor(_handCursor);
-
-                StartPinScaleAnimations(feature, feature.GetOnHoverAnimationType());
-
-                return;
-            }
-        }
-    }
-
     private IEnumerable<IFeature> GetPinFeature(MRect searchArea)
     {
         return _pinsLayer?.GetFeatures(searchArea, _map.Navigator.Viewport.Resolution) ?? [];
@@ -693,8 +508,6 @@ public sealed partial class MapControl
 
         _fadeInAnimationStarted = false;
         _fadeOutAnimationStarted = false;
-
-        _countryCallout.Hide();
     }
 
     private string GetDataAssetPath(string asset)
@@ -1011,16 +824,6 @@ public sealed partial class MapControl
         control.InvalidateCurrentCountry(COUNTRY_CHANGE_ANIMATION_DURATION_IN_MS);
     }
 
-    private static void OnConnectPhraseChanged(DependencyObject d, DependencyPropertyChangedEventArgs e)
-    {
-        if (d is not MapControl control)
-        {
-            return;
-        }
-
-        control.InvalidateConnectPhrase();
-    }
-
     private void HandleDisconnectedState()
     {
         List<IFeature> pins = GetAllPins();
@@ -1314,20 +1117,5 @@ public sealed partial class MapControl
         }
 
         _activeAnimations.AddOrUpdate(style, _ => animations, (_, _) => animations);
-    }
-
-    private void InvalidateConnectPhrase()
-    {
-        _countryCallout.ConnectPhrase = ConnectPhrase;
-    }
-
-    private void OverrideCursor(InputCursor? cursor)
-    {
-        if (ProtectedCursor == cursor)
-        {
-            return;
-        }
-
-        ProtectedCursor = cursor;
     }
 }

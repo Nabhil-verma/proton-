@@ -826,7 +826,6 @@
         <None Remove="Assets\Illustrations\worldwide-coverage.png" />
         <None Remove="Assets\Illustrations\wrong-country.png" />
         <None Remove="Assets\Map\Data\UsaStates.geojson" />
-        <None Remove="Controls\Map\CountryCallout.xaml" />
         <None Remove="Controls\Map\MapControl.xaml" />
         <None Remove="Controls\ScramblingTextControl.xaml" />
         <None Remove="Controls\ServerLoadControl.xaml" />
@@ -2629,11 +2628,6 @@
     </ItemGroup>
     <ItemGroup>
       <Page Update="Styles\Controls\TagControlStyles.xaml">
-        <Generator>MSBuild:Compile</Generator>
-      </Page>
-    </ItemGroup>
-    <ItemGroup>
-      <Page Update="Controls\Map\CountryCallout.xaml">
         <Generator>MSBuild:Compile</Generator>
       </Page>
     </ItemGroup>

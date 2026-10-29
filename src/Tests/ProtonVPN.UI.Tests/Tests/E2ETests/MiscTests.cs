@@ -96,7 +96,6 @@ public class MiscTests : FreshSessionSetUp
                    .LocationDetailsContains(yourIpText)
                    .LocationDetailsContains(yourCountryText)
                    .LocationDetailsContains(yourProviderText);
-        //TODO: Map pin tooltip assert: "Connect - [Country]"
 
         // The default connection list is no longer on the home card, so its localization is verified in settings.
         SettingRobot
