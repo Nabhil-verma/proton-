@@ -410,6 +410,18 @@ unit-tests-with-coverage:
         path: cobertura.xml
   coverage: '/Total.*?([0-9]{1,3}.[0-9]{1,3})%/'
 
+# Compiles the E2E test project on every push without installing the client or
+# running the tests, so breakages in test code fail the pipeline immediately.
+e2e-tests-compile:
+  extends:
+    - .unit_test_config
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+      when: never
+    - when: on_success
+  script:
+    - dotnet build src/Tests/ProtonVPN.UI.Tests/ProtonVPN.UI.Tests.csproj --arch x64 -o src/bin/e2e
+
 build-installer-release-x64:
   except:
     - schedules
