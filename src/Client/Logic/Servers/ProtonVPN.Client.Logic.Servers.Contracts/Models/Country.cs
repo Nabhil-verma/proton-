@@ -22,4 +22,8 @@ namespace ProtonVPN.Client.Logic.Servers.Contracts.Models;
 public class Country : FeatureLocationBase, ICountryLocation
 {
     public required string Code { get; init; }
+
+    public bool IsFree { get; init; }
+
+    public bool IsFreeStandardUnderMaintenance { get; init; }
 }

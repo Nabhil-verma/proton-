@@ -424,20 +424,52 @@ public class ServersCache : IServersCache
 
     private IReadOnlyList<Country> GetCountries(IEnumerable<Server> servers)
     {
-        return servers
+        List<Server> serverList = servers.ToList();
+        IReadOnlyList<FreeCountry> freeCountries = GetFreeCountries(serverList);
+        Dictionary<string, FreeCountry> freeCountriesByCode = freeCountries
+            .ToDictionary(c => c.Code, StringComparer.OrdinalIgnoreCase);
+
+        List<Country> countries = serverList
             .Where(s => !string.IsNullOrWhiteSpace(s.ExitCountry)
                      && s.IsPaidNonB2B())
             .GroupBy(s => s.ExitCountry)
-            .Select(g => new Country()
+            .Select(g =>
             {
-                Code = g.Key,
-                Features = AggregateFeatures(g),
-                IsStandardUnderMaintenance = IsUnderMaintenance(g, s => s.Features.IsStandard()),
-                IsP2PUnderMaintenance = IsUnderMaintenance(g, s => s.Features.IsSupported(ServerFeatures.P2P)),
-                IsSecureCoreUnderMaintenance = IsUnderMaintenance(g, s => s.Features.IsSupported(ServerFeatures.SecureCore)),
-                IsTorUnderMaintenance = IsUnderMaintenance(g, s => s.Features.IsSupported(ServerFeatures.Tor))
+                bool isFree = freeCountriesByCode.TryGetValue(g.Key, out FreeCountry? freeCountry);
+
+                return new Country()
+                {
+                    Code = g.Key,
+                    IsFree = isFree,
+                    IsFreeStandardUnderMaintenance = freeCountry?.IsLocationUnderMaintenance ?? false,
+                    Features = AggregateFeatures(g),
+                    IsStandardUnderMaintenance = IsUnderMaintenance(g, s => s.Features.IsStandard()),
+                    IsP2PUnderMaintenance = IsUnderMaintenance(g, s => s.Features.IsSupported(ServerFeatures.P2P)),
+                    IsSecureCoreUnderMaintenance = IsUnderMaintenance(g, s => s.Features.IsSupported(ServerFeatures.SecureCore)),
+                    IsTorUnderMaintenance = IsUnderMaintenance(g, s => s.Features.IsSupported(ServerFeatures.Tor))
+                };
             })
             .ToList();
+
+        HashSet<string> countryCodes = countries
+            .Select(c => c.Code)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+        countries.AddRange(freeCountries
+            .Where(c => !countryCodes.Contains(c.Code))
+            .Select(c => new Country()
+            {
+                Code = c.Code,
+                IsFree = true,
+                IsFreeStandardUnderMaintenance = c.IsLocationUnderMaintenance,
+                Features = default,
+                IsStandardUnderMaintenance = c.IsLocationUnderMaintenance,
+                IsP2PUnderMaintenance = true,
+                IsSecureCoreUnderMaintenance = true,
+                IsTorUnderMaintenance = true
+            }));
+
+        return countries;
     }
 
     private ServerFeatures AggregateFeatures<T>(IGrouping<T, Server> servers)

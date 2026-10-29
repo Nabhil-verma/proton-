@@ -26,9 +26,11 @@ using ProtonVPN.Api.Contracts.Servers;
 using ProtonVPN.Client.EventMessaging.Contracts;
 using ProtonVPN.Client.Logic.Servers.Cache;
 using ProtonVPN.Client.Logic.Servers.Contracts;
+using ProtonVPN.Client.Logic.Servers.Contracts.Enums;
 using ProtonVPN.Client.Logic.Servers.Contracts.Models;
 using ProtonVPN.Client.Logic.Servers.Files;
 using ProtonVPN.Client.Logic.Servers.Loads;
+using ProtonVPN.Client.Logic.Users.Contracts.Messages;
 using ProtonVPN.Client.Settings.Contracts;
 using ProtonVPN.Common.Core.Geographical;
 using ProtonVPN.Configurations.Contracts;
@@ -86,6 +88,83 @@ public class ServersCacheTest
         Assert.IsTrue(cache.IsOutdated());
         Assert.AreEqual("old-status", settings.LastLogicalsStatusId);
         Assert.AreEqual(DateTimeOffset.UnixEpoch, settings.LogicalsLastModifiedDate);
+    }
+
+    [TestMethod]
+    public async Task UpdateAsync_ShouldExposeFreeCountriesAlongsidePaidCountries()
+    {
+        // Arrange
+        IApiClient apiClient = Substitute.For<IApiClient>();
+        apiClient
+            .GetServersAsync(Arg.Any<DeviceLocation?>(), Arg.Any<IEnumerable<string>>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(GetServersResponse()));
+
+        apiClient
+            .GetServerLoadsAndStatusBinaryStringAsync(Arg.Any<string>(), Arg.Any<CancellationToken>())
+            .Returns(Task.FromResult(ApiResponseResult<byte[]>.Ok(new HttpResponseMessage(), [1, 2, 3])));
+
+        IEntityMapper entityMapper = Substitute.For<IEntityMapper>();
+        entityMapper.Map<LogicalServerResponse, Server>(Arg.Any<List<LogicalServerResponse>>())
+            .Returns(
+            [
+                CreateServer("CA", ServerTiers.Free),
+                CreateServer("US", ServerTiers.Free),
+                CreateServer("US", ServerTiers.Plus),
+                CreateServer("FR", ServerTiers.Plus)
+            ]);
+
+        IServerLoadsCalculator loadsCalculator = Substitute.For<IServerLoadsCalculator>();
+        loadsCalculator.UpdateServerLoads(Arg.Any<List<Server>>(), Arg.Any<byte[]>(), Arg.Any<DeviceLocation?>())
+            .Returns(true);
+
+        IConfiguration configuration = Substitute.For<IConfiguration>();
+        configuration.ServerUpdateInterval.Returns(TimeSpan.FromMinutes(5));
+
+        ISettings settings = Substitute.For<ISettings>();
+        settings.LastLogicalsStatusId.Returns("status");
+        settings.VpnPlan.Returns(new VpnPlan("Free", "free", 0, false));
+
+        ServersCache cache = new(
+            apiClient,
+            entityMapper,
+            Substitute.For<IServersFileReaderWriter>(),
+            Substitute.For<IEventMessageSender>(),
+            configuration,
+            settings,
+            Substitute.For<ILogger>(),
+            Substitute.For<IFavoriteServersStorage>(),
+            loadsCalculator);
+
+        // Act
+        await cache.UpdateAsync(CancellationToken.None);
+
+        // Assert
+        Assert.IsTrue(cache.Countries.Single(c => c.Code == "CA").IsFree);
+        Assert.IsTrue(cache.Countries.Single(c => c.Code == "US").IsFree);
+        Assert.IsFalse(cache.Countries.Single(c => c.Code == "FR").IsFree);
+    }
+
+    private static Server CreateServer(string countryCode, ServerTiers tier)
+    {
+        return new Server
+        {
+            Id = $"{countryCode}-{tier}",
+            Name = $"{countryCode}#1",
+            City = "City",
+            State = "State",
+            EntryCountry = countryCode,
+            ExitCountry = countryCode,
+            HostCountry = countryCode,
+            Domain = "example.com",
+            Tier = tier,
+            Features = default,
+            Status = 1,
+            Servers = [],
+            GatewayName = string.Empty,
+            StatusReference = new(),
+            EntryLocation = new(),
+            ExitLocation = new()
+        };
     }
 
     private static ApiResponseResult<ServersResponse> GetServersResponse()

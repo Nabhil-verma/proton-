@@ -300,7 +300,7 @@ public class RecentConnectionsManager : IRecentConnectionsManager,
 
     private bool TryInsertRecentConnection(IConnectionIntent? recentIntent)
     {
-        if (recentIntent == null || recentIntent.Location is FreeServerLocationIntent)
+        if (recentIntent == null || recentIntent.Location is FreeServerLocationIntent || !_settings.VpnPlan.IsPaid)
         {
             return false;
         }

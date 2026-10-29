@@ -59,6 +59,18 @@ public class CountryLocationItem : CountryLocationItemBase
         IsUnderMaintenance = country.IsStandardUnderMaintenance;
     }
 
+    public override void InvalidateIsRestricted(bool isPaidUser)
+    {
+        base.InvalidateIsRestricted(isPaidUser);
+
+        // Free countries remain selectable for free users, while paid sub-locations
+        // such as states and cities stay restricted.
+        IsRestricted = !isPaidUser && !Country.IsFree;
+        IsUnderMaintenance = !isPaidUser && Country.IsFree
+            ? Country.IsFreeStandardUnderMaintenance
+            : Country.IsStandardUnderMaintenance;
+    }
+
     protected override IEnumerable<ConnectionItemBase> GetSubItems()
     {
         IEnumerable<ConnectionItemBase> states =

@@ -27,6 +27,7 @@ using ProtonVPN.Client.Logic.Connection.Contracts.Messages;
 using ProtonVPN.Client.Logic.Connection.Contracts.Models.Intents;
 using ProtonVPN.Client.Logic.Connection.Contracts.Models.Intents.Features;
 using ProtonVPN.Client.Logic.Connection.Contracts.Models.Intents.Locations;
+using ProtonVPN.Client.Logic.Connection.Contracts.Models.Intents.Locations.Countries;
 using ProtonVPN.Client.Logic.Connection.Contracts.Models.Intents.Locations.FreeServers;
 using ProtonVPN.Client.Logic.Connection.Contracts.RequestCreators;
 using ProtonVPN.Client.Logic.Connection.Extensions;
@@ -193,7 +194,7 @@ public class ConnectionManager : IInternalConnectionManager, IGuestHoleConnector
         }
 
         ILocationIntent locationIntent = connectionIntent.Location.IsForPaidUsersOnly
-            ? FreeServerLocationIntent.Default
+            ? GetAllowedLocationIntentForFreeUser(connectionIntent.Location)
             : connectionIntent.Location;
 
         IFeatureIntent? featureIntent = connectionIntent.Feature is null || connectionIntent.Feature.IsForPaidUsersOnly
@@ -201,6 +202,17 @@ public class ConnectionManager : IInternalConnectionManager, IGuestHoleConnector
             : connectionIntent.Feature;
 
         return new ConnectionIntent(locationIntent, featureIntent);
+    }
+
+    private ILocationIntent GetAllowedLocationIntentForFreeUser(ILocationIntent locationIntent)
+    {
+        if (locationIntent is SingleCountryLocationIntent countryIntent &&
+            _serversLoader.GetFreeCountries().Any(c => c.Code.EqualsIgnoringCase(countryIntent.CountryCode)))
+        {
+            return locationIntent;
+        }
+
+        return FreeServerLocationIntent.Default;
     }
 
     private async Task<bool> SendRequestIfValidAsync(ConnectionRequestIpcEntity request)

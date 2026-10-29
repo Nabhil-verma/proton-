@@ -25,6 +25,7 @@ using ProtonVPN.Client.Logic.Connection.Contracts.Messages;
 using ProtonVPN.Client.Logic.Connection.Contracts.Models.Intents;
 using ProtonVPN.Client.Logic.Connection.Contracts.Models.Intents.Features;
 using ProtonVPN.Client.Logic.Connection.Contracts.Models.Intents.Locations.Countries;
+using ProtonVPN.Client.Logic.Connection.Contracts.Models.Intents.Locations.FreeServers;
 using ProtonVPN.Client.Logic.Connection.Contracts.RequestCreators;
 using ProtonVPN.Client.Logic.Connection.GuestHole;
 using ProtonVPN.Client.Logic.Connection.Statistics;
@@ -165,6 +166,46 @@ public class ConnectionManagerTest
 
         // Assert
         Assert.IsTrue(connectionManager.CurrentConnectionIntent?.IsSameAs(connectionIntent));
+    }
+
+    [TestMethod]
+    public async Task ConnectAsync_ShouldPreserveCountryIntent_WhenFreeUserSelectsFreeCountryAsync()
+    {
+        // Arrange
+        _settings!.VpnPlan.Returns(new VpnPlan("Free", "free", 0, false));
+        _serversLoader!.GetFreeCountries().Returns(
+        [
+            new FreeCountry { Code = "US", IsLocationUnderMaintenance = false }
+        ]);
+
+        ConnectionManager connectionManager = GetConnectionManager();
+        IConnectionIntent connectionIntent = new ConnectionIntent(SingleCountryLocationIntent.From("US"));
+
+        // Act
+        await connectionManager.ConnectAsync(VpnTriggerDimension.Auto, connectionIntent);
+
+        // Assert
+        Assert.IsTrue(connectionManager.CurrentConnectionIntent?.IsSameAs(connectionIntent));
+    }
+
+    [TestMethod]
+    public async Task ConnectAsync_ShouldFallBackToFreeServer_WhenFreeUserSelectsPaidCountryAsync()
+    {
+        // Arrange
+        _settings!.VpnPlan.Returns(new VpnPlan("Free", "free", 0, false));
+        _serversLoader!.GetFreeCountries().Returns(
+        [
+            new FreeCountry { Code = "US", IsLocationUnderMaintenance = false }
+        ]);
+
+        ConnectionManager connectionManager = GetConnectionManager();
+        IConnectionIntent connectionIntent = new ConnectionIntent(SingleCountryLocationIntent.From("FR"));
+
+        // Act
+        await connectionManager.ConnectAsync(VpnTriggerDimension.Auto, connectionIntent);
+
+        // Assert
+        Assert.IsInstanceOfType(connectionManager.CurrentConnectionIntent?.Location, typeof(FreeServerLocationIntent));
     }
 
     [TestMethod]
