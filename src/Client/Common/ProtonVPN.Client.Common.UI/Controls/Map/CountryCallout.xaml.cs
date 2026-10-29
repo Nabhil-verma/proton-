@@ -68,7 +68,9 @@ public sealed partial class CountryCallout : INotifyPropertyChanged
         set => SetValue(ConnectPhraseProperty, value);
     }
 
-    public string Location => string.Format(ConnectPhrase, Country?.Name);
+    public string Location => string.IsNullOrEmpty(ConnectPhrase)
+        ? Country?.Name ?? string.Empty
+        : string.Format(ConnectPhrase, Country?.Name);
 
     private bool _isUnloaded;
     private Country? _lastCountry;

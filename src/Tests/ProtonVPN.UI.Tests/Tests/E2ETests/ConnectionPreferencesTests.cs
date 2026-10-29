@@ -59,7 +59,6 @@ public class ConnectionPreferencesTests : FreshSessionSetUp
     private static readonly string _excludedLocationSearchQuery = Country.UnitedStates.GetName().FirstCharToUpper();
 
     private static readonly string _fastestCountry = LanguageHelper.GetTranslatedString("Country_Fastest");
-    private static readonly string _randomCountry = LanguageHelper.GetTranslatedString("Country_Random");
 
     [SetUp]
     public void SetUp()
@@ -84,7 +83,7 @@ public class ConnectionPreferencesTests : FreshSessionSetUp
     [Test]
     [Property("TestCaseId", "867496")]
     [Retry(3)]
-    public void DefaultLastConnectionConnectsToCorrectServer()
+    public void LastConnectionPreferenceDoesNotAffectConnectionCard()
     {
         SidebarRobot
             .SearchFor(COUNTRY_TO_SEARCH.GetName())
@@ -106,17 +105,20 @@ public class ConnectionPreferencesTests : FreshSessionSetUp
             .ApplySettings()
             .CloseSettings();
 
+        // The connection card always targets the fastest server, so "last connection" must
+        // neither change its title nor make it reconnect to the previously used country.
         HomeRobot
-            .Verify.ConnectionCardTitleEquals(COUNTRY_TO_SEARCH.GetName())
+            .Verify.ConnectionCardTitleEquals(_fastestCountry)
             .ConnectViaConnectionCard()
             .Verify.IsConnected()
+                   .ConnectionCardTitleEquals(_fastestCountry)
             .Disconnect()
             .Verify.IsDisconnected();
     }
 
     [Test]
     [Property("TestCaseId", "867492")]
-    public void DefaultConnectionUpdatesConnectionCardTitle()
+    public void DefaultConnectionDoesNotUpdateConnectionCardTitle()
     {
         SidebarRobot
             .SearchFor(COUNTRY_TO_SEARCH.GetName())
@@ -126,17 +128,23 @@ public class ConnectionPreferencesTests : FreshSessionSetUp
             .Disconnect()
             .Verify.IsDisconnected();
 
-        ChooseDefaultConnectionFromSettingsAndVerifyConnectionCardTitle(VpnConnectionOption.Last, COUNTRY_TO_SEARCH.GetName());
-        ChooseDefaultConnectionFromSettingsAndVerifyConnectionCardTitle(VpnConnectionOption.Random, _randomCountry);
+        // The card always shows the fastest server, regardless of the default connection in settings.
+        ChooseDefaultConnectionFromSettingsAndVerifyConnectionCardTitle(VpnConnectionOption.Last, _fastestCountry);
+        ChooseDefaultConnectionFromSettingsAndVerifyConnectionCardTitle(VpnConnectionOption.Random, _fastestCountry);
         ChooseDefaultConnectionFromSettingsAndVerifyConnectionCardTitle(VpnConnectionOption.Fastest, _fastestCountry);
     }
 
     [Test]
     [Property("TestCaseId", "867493")]
-    public void ConnectToVpnFastestCountryAndRandomCountry()
+    public void ConnectToVpnFastestCountryFromConnectionCard()
     {
-        ConnectToDefaultConnectionAndVerify(VpnConnectionOption.Fastest, _fastestCountry);
-        ConnectToDefaultConnectionAndVerify(VpnConnectionOption.Random, _randomCountry);
+        // "Random" can no longer be selected from the connection card: it always connects to the fastest server.
+        HomeRobot
+            .ConnectViaConnectionCard()
+            .Verify.IsConnected()
+                   .ConnectionCardTitleEquals(_fastestCountry)
+            .Disconnect()
+            .Verify.IsDisconnected();
     }
 
     [Test]
@@ -163,37 +171,14 @@ public class ConnectionPreferencesTests : FreshSessionSetUp
 
     [Test]
     [Property("TestCaseId", "890307")]
-    public void ConnectionPreferencesListUpdatesHome()
+    public void ConnectionPreferencesListIsNotAvailableOnHome()
     {
         PopulateRecents();
 
+        // The connection card no longer exposes the default connection/location list, not even
+        // when recents exist. The list is only reachable from Settings > Connection preferences.
         HomeRobot
-            .Verify.ConnectionPreferencesDropdownContains([
-                COUNTRY_NAME.GetName(),
-                CITY_NAME.GetEnumValue(),
-                COUNTRY_NAME_WITH_SERVER.GetCode(),
-                SECURE_CORE_COUNTRY_NAME.GetName(),
-                VIA_COUNTRY_SWITZERLAND.GetName(),
-                PROFILE_NAME.GetEnumValue()]);
-
-        SidebarRobot
-            .NavigateToRecents()
-            .ExpandSecondaryActionsForRecents(COUNTRY_NAME.GetName())
-            .RemoveRecent();
-        Thread.Sleep(TestConstants.UserInputSimulationDelay);
-        SidebarRobot
-            .ExpandSecondaryActionsForRecents(SECURE_CORE_COUNTRY_NAME.GetName())
-            .RemoveRecent();
-
-        HomeRobot
-            .Verify.ConnectionPreferencesDropdownContains([
-                CITY_NAME.GetEnumValue(),
-                COUNTRY_NAME_WITH_SERVER.GetCode(),
-                PROFILE_NAME.GetEnumValue()])
-            .Verify.ConnectionPreferencesDropdownDoesNotContain([
-                COUNTRY_NAME.GetName(),
-                SECURE_CORE_COUNTRY_NAME.GetName(),
-                VIA_COUNTRY_SWITZERLAND.GetName()]);
+            .Verify.IsDefaultConnectionSelectorNotDisplayed();
     }
 
     [Test]
@@ -212,7 +197,7 @@ public class ConnectionPreferencesTests : FreshSessionSetUp
                 COUNTRY_NAME_WITH_SERVER.GetCode(),
                 SECURE_CORE_COUNTRY_NAME.GetName(),
                 VIA_COUNTRY_SWITZERLAND.GetName(),
-                PROFILE_NAME.GetEnumValue()], isOnConnectionPreferencesPage: true);
+                PROFILE_NAME.GetEnumValue()]);
         SettingRobot
             .CloseSettings();
         SidebarRobot
@@ -232,10 +217,10 @@ public class ConnectionPreferencesTests : FreshSessionSetUp
                 COUNTRY_NAME.GetName(),
                 COUNTRY_NAME_WITH_SERVER.GetCode(),
                 SECURE_CORE_COUNTRY_NAME.GetName(),
-                VIA_COUNTRY_SWITZERLAND.GetName()], isOnConnectionPreferencesPage: true)
+                VIA_COUNTRY_SWITZERLAND.GetName()])
             .Verify.ConnectionPreferencesDropdownDoesNotContain([
                 CITY_NAME.GetEnumValue(),
-                PROFILE_NAME.GetEnumValue()], isOnConnectionPreferencesPage: true);
+                PROFILE_NAME.GetEnumValue()]);
     }
 
     [Test]
@@ -322,17 +307,6 @@ public class ConnectionPreferencesTests : FreshSessionSetUp
         RecentsFlow.PopulateRecentsListWithServer(COUNTRY_NAME_WITH_SERVER);
         RecentsFlow.PopulateRecentsListWithSecureCore(SECURE_CORE_COUNTRY_NAME, VIA_COUNTRY_SWITZERLAND);
         RecentsFlow.PopulateRecentsListWithProfile(PROFILE_NAME.GetEnumValue());
-    }
-
-    private static void ConnectToDefaultConnectionAndVerify(VpnConnectionOption vpnConnectionOption, string expectedConnectionCardTitle)
-    {
-        HomeRobot
-            .SelectDefaultConnectionOption(vpnConnectionOption)
-            .ConnectViaConnectionCard()
-            .Verify.ConnectionCardTitleEquals(expectedConnectionCardTitle)
-                   .IsConnected()
-            .Disconnect()
-            .Verify.IsDisconnected();
     }
 
     private static void ChooseDefaultConnectionFromSettingsAndVerifyConnectionCardTitle(VpnConnectionOption vpnConnectionOption, string expectedConnectionCardTitle)

@@ -42,7 +42,6 @@ using ProtonVPN.Client.Logic.Servers.Contracts.Extensions;
 using ProtonVPN.Client.Logic.Servers.Contracts.Messages;
 using ProtonVPN.Client.Logic.Users.Contracts.Messages;
 using ProtonVPN.Client.Settings.Contracts;
-using ProtonVPN.Client.Settings.Contracts.Messages;
 using ProtonVPN.StatisticalEvents.Contracts.Dimensions;
 
 namespace ProtonVPN.Client.UI.Main.Home.Card;
@@ -52,7 +51,6 @@ public partial class ConnectionCardComponentViewModel : ActivatableViewModelBase
     IEventMessageReceiver<VpnPlanChangedMessage>,
     IEventMessageReceiver<RecentConnectionsChangedMessage>,
     IEventMessageReceiver<ProfilesChangedMessage>,
-    IEventMessageReceiver<SettingChangedMessage>,
     IEventMessageReceiver<ServerListChangedMessage>,
     IEventMessageReceiver<LocationNamesChangedMessage>
 {
@@ -80,7 +78,6 @@ public partial class ConnectionCardComponentViewModel : ActivatableViewModelBase
     [NotifyPropertyChangedFor(nameof(IsConnected))]
     [NotifyPropertyChangedFor(nameof(IsFreeConnectionsTaglineVisible))]
     [NotifyPropertyChangedFor(nameof(IsChangeServerOptionVisible))]
-    [NotifyPropertyChangedFor(nameof(IsChangeDefaultConnectionOptionVisible))]
     [NotifyPropertyChangedFor(nameof(ExitCountry))]
     [NotifyPropertyChangedFor(nameof(EntryCountry))]
     [NotifyPropertyChangedFor(nameof(HostCountry))]
@@ -163,8 +160,6 @@ public partial class ConnectionCardComponentViewModel : ActivatableViewModelBase
     public bool IsFreeConnectionsTaglineVisible => IsFreeUser && !IsConnected;
 
     public bool IsChangeServerOptionVisible => IsFreeUser && IsConnected;
-
-    public bool IsChangeDefaultConnectionOptionVisible => !IsFreeUser && IsDisconnected;
 
     public string? ExitCountry =>
         CurrentConnectionStatus switch
@@ -294,14 +289,6 @@ public partial class ConnectionCardComponentViewModel : ActivatableViewModelBase
         }
     }
 
-    public void Receive(SettingChangedMessage message)
-    {
-        if (IsActive && message.PropertyName == nameof(ISettings.DefaultConnection))
-        {
-            ExecuteOnUIThread(InvalidateConnectionIntent);
-        }
-    }
-
     protected override void OnActivated()
     {
         base.OnActivated();
@@ -394,7 +381,7 @@ public partial class ConnectionCardComponentViewModel : ActivatableViewModelBase
         IConnectionIntent? currentConnectionIntent = _connectionManager.CurrentConnectionIntent;
 
         CurrentConnectionIntent = _connectionManager.IsDisconnected || currentConnectionIntent == null
-            ? _recentConnectionsManager.GetDefaultConnection()
+            ? _recentConnectionsManager.GetFastestConnection()
             : currentConnectionIntent;
 
         // If intent is a profile, the reference might be the same even though profile details/settings have changed.
@@ -417,7 +404,6 @@ public partial class ConnectionCardComponentViewModel : ActivatableViewModelBase
         OnPropertyChanged(nameof(IsFreeUser));
         OnPropertyChanged(nameof(IsFreeConnectionsTaglineVisible));
         OnPropertyChanged(nameof(IsChangeServerOptionVisible));
-        OnPropertyChanged(nameof(IsChangeDefaultConnectionOptionVisible));
     }
 
     private string GetConnectionCardTitle()

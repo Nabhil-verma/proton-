@@ -29,7 +29,6 @@ along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
 
     <map:MapControl Countries="{x:Bind ViewModel.Countries}"
                     CurrentCountry="{x:Bind ViewModel.CurrentCountry}"
-                    ConnectCommand="{x:Bind ViewModel.ConnectCommand}"
                     IsConnected="{x:Bind ViewModel.IsConnected}"
                     IsConnecting="{x:Bind ViewModel.IsConnecting}"
                     IsDisconnected="{x:Bind ViewModel.IsDisconnected}"
@@ -37,7 +36,6 @@ along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
                     TopOffset="{x:Bind TopOffset}"
                     RightOffset="{x:Bind RightOffset}"
                     BottomOffset="{x:Bind BottomOffset}"
-                    TitleBarHeight="{StaticResource MainTitleBarHeight}"
-                    ConnectPhrase="{x:Bind ViewModel.Localizer.Get('Map_ConnectTo')}"/>
+                    TitleBarHeight="{StaticResource MainTitleBarHeight}" />
 
 </UserControl>
