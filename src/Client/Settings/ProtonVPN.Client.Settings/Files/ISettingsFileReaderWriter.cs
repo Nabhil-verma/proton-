@@ -17,10 +17,12 @@
  * along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+using ProtonVPN.Files.Contracts;
+
 namespace ProtonVPN.Client.Settings.Files;
 
 public interface ISettingsFileReaderWriter
 {
     IDictionary<string, string?> Read();
-    void Write(IDictionary<string, string?> dictionary);
+    FileOperationResult Write(IDictionary<string, string?> dictionary);
 }

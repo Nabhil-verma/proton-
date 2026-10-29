@@ -52,7 +52,7 @@ public partial class ManagementClient : IManagementClient
     private bool _disconnectRequested;
     private bool _disconnectAccepted;
 
-    [GeneratedRegex(@"dhcp-option DNS ([^,]+)(?=,|$)")]
+    [GeneratedRegex(@"dhcp-option DNS ([^,'\s]+)")]
     private static partial Regex DhcpRegex();
 
     public Channel<VpnState> StateChannel { get; private set; } = Channel.CreateUnbounded<VpnState>();
@@ -237,9 +237,9 @@ public partial class ManagementClient : IManagementClient
     private void HandleRouteGateway(string message)
     {
         MatchCollection regexResult = Regex.Matches(message, @"route-gateway ((25[0-5]|2[0-4]\d|1?\d{1,2})(\.(25[0-5]|2[0-4]\d|1?\d{1,2})){3})");
-        if (regexResult.Count > 0 && regexResult[0].Groups.Count >= 2)
+        if (regexResult.Count > 0 && regexResult[0].Groups.Count >= 2 &&
+            IPAddress.TryParse(regexResult[0].Groups[1].Value, out IPAddress? gatewayIPAddress))
         {
-            IPAddress gatewayIPAddress = IPAddress.Parse(regexResult[0].Groups[1].Value);
             _gatewayCache.Save(gatewayIPAddress);
         }
     }
@@ -257,8 +257,9 @@ public partial class ManagementClient : IManagementClient
 
     private IPAddress? ParseDnsServerIpAddress(Match match)
     {
-        return match.Groups.Count >= 2
-            ? IPAddress.Parse(match.Groups[1].Value)
+        return match.Groups.Count >= 2 &&
+               IPAddress.TryParse(match.Groups[1].Value, out IPAddress? dnsServerIpAddress)
+            ? dnsServerIpAddress
             : null;
     }
 

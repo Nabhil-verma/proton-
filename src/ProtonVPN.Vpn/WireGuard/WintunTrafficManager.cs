@@ -122,9 +122,9 @@ public class WintunTrafficManager : IWintunTrafficManager
                     {
                         tx += ulong.Parse(line.Substring(9));
                     }
-
-                    yield return new NetworkTraffic(rx, tx);
                 }
+
+                yield return new NetworkTraffic(rx, tx);
 
                 await Task.Delay(1000, cancellationToken);
             }

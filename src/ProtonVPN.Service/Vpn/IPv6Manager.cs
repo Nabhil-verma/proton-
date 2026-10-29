@@ -114,63 +114,77 @@ internal class IPv6Manager : IIPv6Manager
 
     private async void OnNetworkInterfacesAddedAsync(object? sender, EventArgs e)
     {
-        if (_wereInterfacesAdded || _vpnProtocol is null || _vpnStatus != VpnStatus.Connected)
+        try
         {
-            return;
+            if (_wereInterfacesAdded || _vpnProtocol is null || _vpnStatus != VpnStatus.Connected)
+            {
+                return;
+            }
+
+            _wereInterfacesAdded = true;
+
+            if (!_ipv6.IsEnabled)
+            {
+                await RunExclusiveAsync(_ipv6Semaphore, () => _ipv6.DisableAsync(_vpnProtocol.Value));
+            }
         }
-
-        _wereInterfacesAdded = true;
-
-        if (!_ipv6.IsEnabled)
+        catch (Exception ex)
         {
-            await RunExclusiveAsync(_ipv6Semaphore, () => _ipv6.DisableAsync(_vpnProtocol.Value));
+            _logger.Error<IPv6Log>("Failed to handle added network interfaces.", ex);
         }
     }
 
     private async void OnNetworkAddressChangedAsync(object? sender, EventArgs e)
     {
-        await RunExclusiveAsync(_networkSemaphore, async () =>
+        try
         {
-            if (_vpnStatus != VpnStatus.Connected)
+            await RunExclusiveAsync(_networkSemaphore, async () =>
             {
-                return;
-            }
+                if (_vpnStatus != VpnStatus.Connected)
+                {
+                    return;
+                }
 
-            HashSet<NetworkAddress> globalUnicastAddresses = GetGlobalUnicastAddresses();
-            if (_lastGlobalUnicastAddresses.SetEquals(globalUnicastAddresses))
-            {
-                return;
-            }
+                HashSet<NetworkAddress> globalUnicastAddresses = GetGlobalUnicastAddresses();
+                if (_lastGlobalUnicastAddresses.SetEquals(globalUnicastAddresses))
+                {
+                    return;
+                }
 
-            if (globalUnicastAddresses.Count > 0)
-            {
-                LogGuaAddresses(globalUnicastAddresses);
-            }
+                if (globalUnicastAddresses.Count > 0)
+                {
+                    LogGuaAddresses(globalUnicastAddresses);
+                }
 
-            INetworkInterface? tunnelInterface = GetTunnelInterface();
-            if (tunnelInterface is null)
-            {
-                return;
-            }
+                INetworkInterface? tunnelInterface = GetTunnelInterface();
+                if (tunnelInterface is null)
+                {
+                    return;
+                }
 
-            if (globalUnicastAddresses.Count == 0 && _lastGlobalUnicastAddresses.Count > 0)
-            {
-                _logger.Info<IPv6Log>("No GUA addresses detected after network addresses changed. Clearing previuos fake IPv6 addresses.");
+                if (globalUnicastAddresses.Count == 0 && _lastGlobalUnicastAddresses.Count > 0)
+                {
+                    _logger.Info<IPv6Log>("No GUA addresses detected after network addresses changed. Clearing previuos fake IPv6 addresses.");
 
-                _lastGlobalUnicastAddresses.Clear();
+                    _lastGlobalUnicastAddresses.Clear();
 
-                await DeleteInterfaceIpv6AddressesAsync(_lastFakeIpv6Addresses, tunnelInterface.Index);
-                _lastFakeIpv6Addresses.Clear();
-                return;
-            }
+                    await DeleteInterfaceIpv6AddressesAsync(_lastFakeIpv6Addresses, tunnelInterface.Index);
+                    _lastFakeIpv6Addresses.Clear();
+                    return;
+                }
 
-            _lastGlobalUnicastAddresses = globalUnicastAddresses;
+                _lastGlobalUnicastAddresses = globalUnicastAddresses;
 
-            List<NetworkAddress> ipv6AddressesToRemove = _lastFakeIpv6Addresses.ToList();
+                List<NetworkAddress> ipv6AddressesToRemove = _lastFakeIpv6Addresses.ToList();
 
-            await ApplyFakeIpv6AddressesAsync(tunnelInterface.Index);
-            await DeleteInterfaceIpv6AddressesAsync(ipv6AddressesToRemove, tunnelInterface.Index);
-        });
+                await ApplyFakeIpv6AddressesAsync(tunnelInterface.Index);
+                await DeleteInterfaceIpv6AddressesAsync(ipv6AddressesToRemove, tunnelInterface.Index);
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.Error<IPv6Log>("Failed to handle changed network addresses.", ex);
+        }
     }
 
     private async Task HandleIPv6InterfacesAsync(VpnStatus vpnStatus, VpnProtocol vpnProtocol)

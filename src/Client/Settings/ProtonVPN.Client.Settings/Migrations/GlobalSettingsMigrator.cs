@@ -70,6 +70,7 @@ public class GlobalSettingsMigrator : IGlobalSettingsMigrator
         if (legacyUserConfigFilePath is null || !File.Exists(legacyUserConfigFilePath))
         {
             _logger.Info<AppLog>($"The old settings file doesn't exist ({legacyUserConfigFilePath})");
+            _globalSettings.IsGlobalSettingsMigrationDone = true;
             return;
         }
 
@@ -167,7 +168,7 @@ public class GlobalSettingsMigrator : IGlobalSettingsMigrator
                     .Where(uat => !string.IsNullOrEmpty(uat.User))
                     // Ensure the user with access token is the last, so it remains as the currently logged in user
                     .OrderBy(uat => !string.IsNullOrEmpty(uat.Value?.Decrypt()))
-                    .Select(uat => uat.User!.ToLower())
+                    .Select(uat => uat.User!.ToLowerInvariant())
                     .ToList();
             }
         }

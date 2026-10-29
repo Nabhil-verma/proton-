@@ -359,16 +359,20 @@ public class RecentConnectionsManager : IRecentConnectionsManager,
             IConnectionProfile? profile = profiles.FirstOrDefault(p => p.IsSameAs(connection.ConnectionIntent));
             if (profile != null)
             {
-                // Profile may have changed, update the recent connection item
-                connection.ConnectionIntent = profile;
+                if (!connection.ConnectionIntent.IsSameAs(profile))
+                {
+                    // Profile may have changed, update the recent connection item
+                    connection.ConnectionIntent = profile;
+                    hasRecentListBeenModified = true;
+                }
             }
             else
             {
                 // Profile no longer exists, remove it from recents
                 _logger.Info<AppLog>($"Recent connection {connection.ConnectionIntent} has been removed because the profile has been deleted");
                 _recentConnections.Remove(connection);
+                hasRecentListBeenModified = true;
             }
-            hasRecentListBeenModified = true;
         }
 
         return hasRecentListBeenModified;

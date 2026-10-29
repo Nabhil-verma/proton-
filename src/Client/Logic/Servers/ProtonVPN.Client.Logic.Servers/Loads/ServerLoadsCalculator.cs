@@ -54,12 +54,14 @@ public class ServerLoadsCalculator : IServerLoadsCalculator
 
     private unsafe FfiLoad[]? ComputeNative(IReadOnlyList<Server> servers, byte[] statusFile, DeviceLocation? deviceLocation)
     {
-        ReadOnlySpan<FfiLogical> logicals = MapServersToLogicals(servers).AsSpan();
-        if (logicals.Length < servers.Count)
+        FfiLogical[]? mappedLogicals = MapServersToLogicals(servers);
+        if (mappedLogicals is null)
         {
-            _logger.Error<AppLog>($"Failed to map all servers to logicals. Expected {servers.Count}, but only {logicals.Length} were mapped.");
+            _logger.Error<AppLog>($"Failed to map all {servers.Count} servers to logicals.");
             return null;
         }
+
+        ReadOnlySpan<FfiLogical> logicals = mappedLogicals.AsSpan();
 
         ReadOnlySpan<byte> statusFileSpan = statusFile.AsSpan();
         FfiLocation location = new()
@@ -103,7 +105,7 @@ public class ServerLoadsCalculator : IServerLoadsCalculator
         }
     }
 
-    private unsafe static FfiLogical[] MapServersToLogicals(IReadOnlyList<Server> servers)
+    private unsafe static FfiLogical[]? MapServersToLogicals(IReadOnlyList<Server> servers)
     {
         FfiLogical[] logicals = new FfiLogical[servers.Count];
 
@@ -117,7 +119,7 @@ public class ServerLoadsCalculator : IServerLoadsCalculator
             // after removing IsBinaryServerStatusEnabled feature flag.
             if (server.StatusReference is null || server.EntryLocation is null || server.ExitLocation is null)
             {
-                continue;
+                return null;
             }
 
             logicals[i] = new FfiLogical

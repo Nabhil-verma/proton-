@@ -218,18 +218,13 @@ public class ServersCache : IServersCache
 
             if (response.Success)
             {
-                _lastFullUpdateUtc = utcNow;
-                _lastLoadsUpdateUtc = utcNow;
-                _hasServersRequestFailed = false;
-
-                if (response.LastModified.HasValue)
-                {
-                    _settings.LogicalsLastModifiedDate = response.LastModified.Value;
-                }
-
                 if (response.IsNotModified)
                 {
                     _logger.Info<ApiLog>("API: Get servers response was not modified since last call, using cached data.");
+
+                    _lastFullUpdateUtc = utcNow;
+                    _lastLoadsUpdateUtc = utcNow;
+                    _hasServersRequestFailed = false;
                 }
                 else
                 {
@@ -248,11 +243,14 @@ public class ServersCache : IServersCache
                         }
                     }
 
+                    string? previousStatusId = _settings.LastLogicalsStatusId;
                     _settings.LastLogicalsStatusId = response.Value.StatusId;
 
                     bool result = await UpdateBinaryLoadsAsync(servers, cancellationToken);
                     if (!result)
                     {
+                        _settings.LastLogicalsStatusId = previousStatusId;
+                        _hasServersRequestFailed = true;
                         _logger.Warn<ApiLog>("Loads were not updated.");
                         return;
                     }
@@ -262,6 +260,15 @@ public class ServersCache : IServersCache
 
                     SaveToFile(deviceCountryLocation, userMaxTier, servers);
                     ProcessServers(deviceCountryLocation, userMaxTier, servers);
+
+                    if (response.LastModified.HasValue)
+                    {
+                        _settings.LogicalsLastModifiedDate = response.LastModified.Value;
+                    }
+
+                    _lastFullUpdateUtc = utcNow;
+                    _lastLoadsUpdateUtc = utcNow;
+                    _hasServersRequestFailed = false;
                 }
             }
             else

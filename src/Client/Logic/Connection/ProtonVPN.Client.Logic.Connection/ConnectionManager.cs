@@ -333,7 +333,7 @@ public class ConnectionManager : IInternalConnectionManager, IGuestHoleConnector
                                             $"NetworkAdapterType: '{message.OpenVpnAdapterType}' VpnProtocol: '{message.VpnProtocol}'");
 
                     // VPNWIN-2105 - Either (1) Reconnect without last server, or (2) Delete this comment
-                    await ReconnectAsync(VpnTriggerDimension.Auto);
+                    await ReconnectIfNotRecentlyReconnectedAsync();
                 }
                 else // Tier is too low for the connected server
                 {

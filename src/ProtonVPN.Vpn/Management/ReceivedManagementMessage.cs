@@ -64,18 +64,24 @@ public class ReceivedManagementMessage
 
     public NetworkTraffic Bandwidth()
     {
-        string[] byteCountArr = _messageText.Split(':')[1].Split(',');
+        int separatorIndex = _messageText.IndexOf(':');
+        if (separatorIndex < 0)
+        {
+            return NetworkTraffic.Zero;
+        }
+
+        string[] byteCountArr = _messageText[(separatorIndex + 1)..].Split(',');
         if (byteCountArr.Length <= 1)
         {
             return NetworkTraffic.Zero;
         }
 
-        if (!ulong.TryParse(byteCountArr[0], out ulong bytesIn))
+        if (!ulong.TryParse(byteCountArr[0].Trim(), out ulong bytesIn))
         {
             return NetworkTraffic.Zero;
         }
 
-        if (!ulong.TryParse(byteCountArr[1], out ulong bytesOut))
+        if (!ulong.TryParse(byteCountArr[1].Trim(), out ulong bytesOut))
         {
             return NetworkTraffic.Zero;
         }

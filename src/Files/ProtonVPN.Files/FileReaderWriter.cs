@@ -106,7 +106,47 @@ public class FileReaderWriter : IFileReaderWriter
 
     public FileOperationResult Write<T>(T value, string fullFilePath, Serializers serializer)
     {
-        return WriteByFileMode(value, fullFilePath, serializer, FileMode.Create);
+        if (fullFilePath is null)
+        {
+            _logger.Info<AppLog>("Cannot save the file because the FullFilePath is null.");
+            return FileOperationResult.Failed;
+        }
+
+        CreateDirectory(fullFilePath);
+
+        string temporaryFilePath = $"{fullFilePath}.{Guid.NewGuid():N}.tmp";
+
+        try
+        {
+            using (MemoryStream memoryStream = GetSerializer(serializer).Serialize(value))
+            using (FileStream fileStream = new(temporaryFilePath, FileMode.CreateNew, FileAccess.Write, FileShare.None))
+            {
+                memoryStream.CopyTo(fileStream);
+                fileStream.Flush(true);
+            }
+
+            File.Move(temporaryFilePath, fullFilePath, overwrite: true);
+            return FileOperationResult.Success;
+        }
+        catch (Exception ex)
+        {
+            _logger.Error<SettingsLog>($"Failed to write the file {fullFilePath}.", ex);
+            return FileOperationResult.Failed;
+        }
+        finally
+        {
+            try
+            {
+                if (File.Exists(temporaryFilePath))
+                {
+                    File.Delete(temporaryFilePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.Warn<SettingsLog>($"Failed to delete the temporary file {temporaryFilePath}.", ex);
+            }
+        }
     }
 
     private FileOperationResult WriteByFileMode<T>(T value, string fullFilePath, Serializers serializer, FileMode fileMode)

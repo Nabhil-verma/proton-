@@ -45,6 +45,8 @@ namespace ProtonVPN.Vpn.Connection;
 
 internal class OpenVpnConnection : IOpenVpnConnection
 {
+    internal TimeSpan ProcessStartTimeout { get; set; } = TimeSpan.FromSeconds(30);
+
     private static readonly TimeSpan _waitForConnectionTaskToFinishAfterClose = TimeSpan.FromSeconds(3);
     private static readonly TimeSpan _waitForConnectionTaskToFinishAfterCancellation = TimeSpan.FromSeconds(3);
     private const int MANAGEMENT_PASSWORD_LENGTH = 16;
@@ -116,6 +118,7 @@ internal class OpenVpnConnection : IOpenVpnConnection
         _vpnConfig = vpnConfig;
         _endpoint = endpoint;
         _credentials = credentials;
+        _disconnectError = VpnError.None;
 
         _connectionTaskCompletionSource = new(TaskCreationOptions.RunContinuationsAsynchronously);
         _localIpv4Address = null;
@@ -147,7 +150,7 @@ internal class OpenVpnConnection : IOpenVpnConnection
         bool isConnected = _connectionTaskCompletionSource.Task.Result;
         if (!isConnected)
         {
-            return _disconnectError;
+            return _disconnectError == VpnError.None ? VpnError.Unknown : _disconnectError;
         }
 
         return VpnError.None;
@@ -348,6 +351,11 @@ internal class OpenVpnConnection : IOpenVpnConnection
 
         if (completed == connectTask && !completionTask.IsCompleted)
         {
+            if (connectTask.IsFaulted)
+            {
+                _disconnectError = VpnError.Unknown;
+            }
+
             SetConnectionTaskResult(false);
         }
 
@@ -394,7 +402,20 @@ internal class OpenVpnConnection : IOpenVpnConnection
 
             cancellationToken.ThrowIfCancellationRequested();
 
-            if (!await _process.Start(processParams))
+            Task<bool> processStartTask = _process.Start(processParams);
+            Task processStartTimeoutTask = Task.Delay(ProcessStartTimeout, cancellationToken);
+
+            if (await Task.WhenAny(processStartTask, processStartTimeoutTask) == processStartTimeoutTask)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                _logger.Error<ConnectionLog>($"OpenVPN did not start within {ProcessStartTimeout.TotalSeconds} seconds.");
+                _disconnectError = VpnError.Unknown;
+                _process.Stop();
+                return;
+            }
+
+            if (!await processStartTask)
             {
                 _disconnectError = VpnError.Unknown;
             }
@@ -415,6 +436,11 @@ internal class OpenVpnConnection : IOpenVpnConnection
         }
         catch (OperationCanceledException)
         {
+        }
+        catch (Exception ex)
+        {
+            _disconnectError = VpnError.Unknown;
+            _logger.Error<ConnectLog>("Connect action failed.", ex);
         }
         finally
         {

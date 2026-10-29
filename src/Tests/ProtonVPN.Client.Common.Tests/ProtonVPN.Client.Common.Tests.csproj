@@ -27,6 +27,7 @@
           <PrivateAssets>all</PrivateAssets>
           <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
+        <PackageReference Include="NSubstitute" />
         <PackageReference Include="System.Formats.Asn1" />
         <PackageReference Include="System.Text.Json" />
     </ItemGroup>
@@ -35,5 +36,6 @@
     </ItemGroup>
     <ItemGroup>
         <ProjectReference Include="..\..\Client\Common\ProtonVPN.Client.Common\ProtonVPN.Client.Common.csproj" />
+        <ProjectReference Include="..\..\Client\Settings\ProtonVPN.Client.Settings\ProtonVPN.Client.Settings.csproj" />
     </ItemGroup>
 </Project>

@@ -29,6 +29,7 @@ using ProtonVPN.Client.Logic.Connection.Contracts.RequestCreators;
 using ProtonVPN.Client.Logic.Connection.GuestHole;
 using ProtonVPN.Client.Logic.Connection.Statistics;
 using ProtonVPN.Client.Logic.Servers.Contracts;
+using ProtonVPN.Client.Logic.Servers.Contracts.Models;
 using ProtonVPN.Client.Logic.Services.Contracts;
 using ProtonVPN.Client.Logic.Users.Contracts.Messages;
 using ProtonVPN.Client.Settings.Contracts;
@@ -226,6 +227,27 @@ public class ConnectionManagerTest
             m => m.ConnectionStatus == ConnectionStatus.Connecting && !m.HasConnectionIntentChanged));
         _eventMessageSender!.Received(1).Send(Arg.Is<ConnectionStatusChangedMessage>(
             m => m.ConnectionStatus == ConnectionStatus.Connecting && m.HasConnectionIntentChanged));
+    }
+
+    [TestMethod]
+    public async Task HandleAsync_ShouldNotReconnect_WhenServerIsUnknownAndReconnectWasRecentAsync()
+    {
+        // Arrange
+        _settings!.VpnPlan.Returns(new VpnPlan(string.Empty, string.Empty, PAID_PLAN_TIER, false));
+        _serversLoader!.GetServers().Returns(Array.Empty<Server>());
+
+        ConnectionManager connectionManager = GetConnectionManager();
+        await connectionManager.ConnectAsync(
+            VpnTriggerDimension.Auto,
+            GetConnectionIntent(GetFeatureIntent(typeof(TorFeatureIntent))));
+        await connectionManager.ReconnectAsync(VpnTriggerDimension.Auto);
+        _vpnServiceCaller!.ClearReceivedCalls();
+
+        // Act
+        await connectionManager.HandleAsync(GetVpnStateIpcEntity(VpnStatusIpcEntity.Connected));
+
+        // Assert
+        await _vpnServiceCaller.DidNotReceive().ConnectAsync(Arg.Any<ConnectionRequestIpcEntity>());
     }
 
     private void SetupStatusMapping()

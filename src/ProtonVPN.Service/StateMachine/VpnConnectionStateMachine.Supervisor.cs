@@ -197,21 +197,29 @@ internal sealed partial class VpnConnectionStateMachine
             return;
         }
 
-        _vpnConfig = new VpnConfig(new()
+        _vpnConfig = CreateUpdatedVpnConfig(_vpnConfig, message.VpnFeatures);
+    }
+
+    internal static VpnConfig CreateUpdatedVpnConfig(VpnConfig current, VpnFeatures features)
+    {
+        return new VpnConfig(new VpnConfigParameters
         {
-            Ports = _vpnConfig.Ports,
-            CustomDns = _vpnConfig.CustomDns,
-            SplitTunnelMode = _vpnConfig.SplitTunnelMode,
-            SplitTunnelIPs = _vpnConfig.SplitTunnelIPs,
-            OpenVpnAdapter = _vpnConfig.OpenVpnAdapter,
-            VpnProtocol = _vpnConfig.VpnProtocol,
-            PreferredProtocols = _vpnConfig.PreferredProtocols,
-            NetShieldMode = message.VpnFeatures.NetShieldMode,
-            SplitTcp = message.VpnFeatures.SplitTcp,
-            PortForwarding = message.VpnFeatures.PortForwarding,
-            IsIpv6Enabled = _vpnConfig.IsIpv6Enabled,
-            WireGuardConnectionTimeout = _vpnConfig.WireGuardConnectionTimeout,
-            DnsBlockMode = _vpnConfig.DnsBlockMode,
+            Ports = current.Ports,
+            CustomDns = current.CustomDns,
+            SplitTunnelMode = current.SplitTunnelMode,
+            SplitTunnelIPs = current.SplitTunnelIPs,
+            OpenVpnAdapter = current.OpenVpnAdapter,
+            VpnProtocol = current.VpnProtocol,
+            PreferredProtocols = current.PreferredProtocols,
+            NetShieldMode = features.NetShieldMode,
+            SplitTcp = features.SplitTcp,
+            ModerateNat = features.ModerateNat,
+            PortForwarding = features.PortForwarding,
+            IsIpv6Enabled = current.IsIpv6Enabled,
+            WireGuardConnectionTimeout = current.WireGuardConnectionTimeout,
+            DnsBlockMode = current.DnsBlockMode,
+            ShouldDisableWeakHostSetting = current.ShouldDisableWeakHostSetting,
+            IsWireGuardServerRouteEnabled = current.IsWireGuardServerRouteEnabled,
         });
     }
 

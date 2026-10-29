@@ -19,7 +19,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.ServiceProcess;
 using System.Threading;
 using System.Threading.Tasks;
@@ -119,13 +118,14 @@ internal partial class VpnService : ServiceBase
         LogEvent("Service is starting");
         try
         {
+            _grpcServer.CreateAndStart();
+
             if (!IsBfeServiceRunningAndEnabled())
             {
                 _vpnConnectionStateMachine.ReportDisconnected(VpnError.BaseFilteringEngineServiceNotRunning);
                 return;
             }
 
-            _grpcServer.CreateAndStart();
             _proTunManager.InitializeAsync().FireAndForget();
 
             TriggerDisconnectAsync().FireAndForget();
@@ -141,7 +141,35 @@ internal partial class VpnService : ServiceBase
         }
     }
 
-    protected override async void OnStop()
+    protected override void OnStop()
+    {
+        try
+        {
+            RequestAdditionalTime(15000);
+        }
+        catch (Exception ex)
+        {
+            // The service control manager handle is not available in some hosting scenarios.
+            _logger.Warn<AppServiceStopFailedLog>("Failed to request additional stop time.", ex);
+        }
+
+        try
+        {
+            Task stopTask = Task.Run(StopAsync);
+            if (!stopTask.Wait(TimeSpan.FromSeconds(15)))
+            {
+                _logger.Warn<AppServiceStopFailedLog>("Timed out while stopping VPN Service.");
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error<AppServiceStopFailedLog>("An error occurred when stopping VPN Service.", ex);
+            LogEvent($"OnStop: {ex}");
+            _issueReporter.CaptureError(ex);
+        }
+    }
+
+    private async Task StopAsync()
     {
         try
         {
@@ -202,8 +230,9 @@ internal partial class VpnService : ServiceBase
         {
             EventLog.WriteEntry(message.Replace('%', '_'));
         }
-        catch (Exception e) when (e is InvalidOperationException or Win32Exception)
+        catch (Exception)
         {
+            // Event logging is best-effort and must not interrupt service lifecycle operations.
         }
     }
 

@@ -268,10 +268,17 @@ public class ClientControllerSender : IClientController, IClientControllerSender
 
     private async void OnPortForwardingStateChangedAsync(object? sender, EventArgs<PortForwardingState> e)
     {
-        PortForwardingState state = e.Data;
-        _logger.Debug<AppServiceLog>($"Port Forwarding state changed - {GetPortForwardingStateLogMessage(state)}");
-        _portForwardingState = state;
-        await SendPortForwardingStateChangeAsync(state);
+        try
+        {
+            PortForwardingState state = e.Data;
+            _logger.Debug<AppServiceLog>($"Port Forwarding state changed - {GetPortForwardingStateLogMessage(state)}");
+            _portForwardingState = state;
+            await SendPortForwardingStateChangeAsync(state);
+        }
+        catch (Exception ex)
+        {
+            _logger.Error<AppServiceLog>("Failed to send the Port Forwarding state change.", ex);
+        }
     }
 
     private string GetPortForwardingStateLogMessage(PortForwardingState state)
@@ -314,24 +321,31 @@ public class ClientControllerSender : IClientController, IClientControllerSender
 
     public async void OnServiceSettingsChanged(MainSettingsIpcEntity settings)
     {
-        VpnState vpnState = _vpnState;
-        if (vpnState.Status == VpnStatus.Disconnected)
+        try
         {
-            _logger.Info<ProcessCommunicationLog>($"Sending VPN Service Settings Change. " +
-                $"Status: '{vpnState.Status}' (Error: '{vpnState.Error}')");
-            await SendStateChangeAsync(vpnState);
-        }
-        else if (vpnState.Status == VpnStatus.Connected)
-        {
-            if (!settings.PortForwarding)
+            VpnState vpnState = _vpnState;
+            if (vpnState.Status == VpnStatus.Disconnected)
             {
-                _logger.Debug<ConnectLog>("Requesting NAT-PMP client to stop.");
-                await _portMappingProtocolClient.StopAsync();
+                _logger.Info<ProcessCommunicationLog>($"Sending VPN Service Settings Change. " +
+                    $"Status: '{vpnState.Status}' (Error: '{vpnState.Error}')");
+                await SendStateChangeAsync(vpnState);
             }
+            else if (vpnState.Status == VpnStatus.Connected)
+            {
+                if (!settings.PortForwarding)
+                {
+                    _logger.Debug<ConnectLog>("Requesting NAT-PMP client to stop.");
+                    await _portMappingProtocolClient.StopAsync();
+                }
 
-            VpnFeatures vpnFeatures = CreateVpnFeatures(settings);
-            _vpnControllerStateMachine.UpdateVpnConfig(vpnFeatures);
-            _localAgent.SetFeatures(vpnFeatures);
+                VpnFeatures vpnFeatures = CreateVpnFeatures(settings);
+                _vpnControllerStateMachine.UpdateVpnConfig(vpnFeatures);
+                _localAgent.SetFeatures(vpnFeatures);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error<AppServiceLog>("Failed to apply VPN Service settings change.", ex);
         }
     }
 

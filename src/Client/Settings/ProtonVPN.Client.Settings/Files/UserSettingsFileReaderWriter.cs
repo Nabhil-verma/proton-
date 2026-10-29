@@ -19,6 +19,7 @@
 
 using ProtonVPN.Client.Files.Contracts;
 using ProtonVPN.Configurations.Contracts;
+using ProtonVPN.Files.Contracts;
 using ProtonVPN.Logging.Contracts;
 using ProtonVPN.Logging.Contracts.Events.AppLogs;
 using ProtonVPN.Serialization.Contracts;
@@ -58,8 +59,8 @@ public class UserSettingsFileReaderWriter : IUserSettingsFileReaderWriter
         return settings;
     }
 
-    public void Write(IDictionary<string, string?> dictionary)
+    public FileOperationResult Write(IDictionary<string, string?> dictionary)
     {
-        _userFileReaderWriter.Write(dictionary, _fileReaderWriterParameters);
+        return _userFileReaderWriter.Write(dictionary, _fileReaderWriterParameters);
     }
 }

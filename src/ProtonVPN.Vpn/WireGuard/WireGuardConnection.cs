@@ -409,12 +409,19 @@ public class WireGuardConnection: IWireGuardConnection
 
     private async void CheckIfServiceIsRunningAsync(object? sender, ElapsedEventArgs e)
     {
-        if (_isConnected && !_wireGuardService.Running() && !_cts.IsCancellationRequested && _endpoint is not null)
+        try
         {
-            _logger.Info<DisconnectTriggerLog>($"The service {_wireGuardService.Name} is not running. " +
-                         "Sending VpnError.Unknown to get reconnected.");
+            if (_isConnected && !_wireGuardService.Running() && !_cts.IsCancellationRequested && _endpoint is not null)
+            {
+                _logger.Info<DisconnectTriggerLog>($"The service {_wireGuardService.Name} is not running. " +
+                             "Sending VpnError.Unknown to get reconnected.");
 
-            await _stateChannel.Writer.WriteAsync(new VpnState(VpnStatus.Connected, VpnError.Unknown, _endpoint.VpnProtocol), _cts.Token);
+                await _stateChannel.Writer.WriteAsync(new VpnState(VpnStatus.Connected, VpnError.Unknown, _endpoint.VpnProtocol), _cts.Token);
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.Error<ConnectLog>("Failed to check the WireGuard service state.", ex);
         }
     }
 }

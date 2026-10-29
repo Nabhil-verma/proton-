@@ -27,6 +27,7 @@ using ProtonVPN.Client.Settings.Repositories.Contracts;
 using ProtonVPN.Common.Core.Extensions;
 using ProtonVPN.Common.Core.Helpers;
 using ProtonVPN.Crypto.Contracts.Extensions;
+using ProtonVPN.Files.Contracts;
 using ProtonVPN.Logging.Contracts;
 using ProtonVPN.Logging.Contracts.Events.SettingsLogs;
 using ProtonVPN.Serialization.Contracts.Json;
@@ -270,17 +271,43 @@ public abstract class SettingsCacheBase : ISettingsCache
         {
             json = json?.Encrypt();
         }
-        Set(propertyName, newValue, json);
+        if (!Set(propertyName, newValue, json))
+        {
+            return;
+        }
 
         OnPropertyChanged(oldValue, newValue, propertyName);
         LogChange(propertyName, oldValue, newValue, encryption);
     }
 
-    private void Set<T>(string propertyName, T? newValue, string? json)
+    private bool Set<T>(string propertyName, T? newValue, string? json)
     {
+        bool hadPreviousValue = JsonCache.Value.TryGetValue(propertyName, out string? previousJson);
         JsonCache.Value.AddOrUpdate(propertyName, json, (_, _) => json);
-        _settingsFileReaderWriter.Write(JsonCache.Value);
+
+        FileOperationResult result = _settingsFileReaderWriter.Write(JsonCache.Value);
+        if (result != FileOperationResult.Success)
+        {
+            result = _settingsFileReaderWriter.Write(JsonCache.Value);
+        }
+
+        if (result != FileOperationResult.Success)
+        {
+            if (hadPreviousValue)
+            {
+                JsonCache.Value.AddOrUpdate(propertyName, previousJson, (_, _) => previousJson);
+            }
+            else
+            {
+                JsonCache.Value.TryRemove(propertyName, out _);
+            }
+
+            Logger.Error<SettingsLog>($"Failed to persist the setting '{propertyName}' (result: {result}).");
+            return false;
+        }
+
         Cache.AddOrUpdate(propertyName, newValue, (_, _) => newValue);
+        return true;
     }
 
     private Type? UnwrapNullable(Type type)

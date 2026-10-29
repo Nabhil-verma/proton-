@@ -312,8 +312,19 @@ public static class StringExtensions
 
     public static bool IsHttpUri(this string uriString, out Uri? uri)
     {
-        return Uri.TryCreate(uriString, UriKind.Absolute, out uri) && (uri.Scheme == Uri.UriSchemeHttps || uri.Scheme == Uri.UriSchemeHttp)
-            || Uri.TryCreate($"https://{uriString}", UriKind.Absolute, out uri);
+        if (Uri.TryCreate(uriString, UriKind.Absolute, out Uri? absoluteUri))
+        {
+            if (absoluteUri.Scheme == Uri.UriSchemeHttps || absoluteUri.Scheme == Uri.UriSchemeHttp)
+            {
+                uri = absoluteUri;
+                return true;
+            }
+
+            uri = null;
+            return false;
+        }
+
+        return Uri.TryCreate($"https://{uriString}", UriKind.Absolute, out uri);
     }
 
     public static bool IsValidEmailAddress(this string email)

@@ -50,15 +50,22 @@ public class ProTunStateChangeHandler : IProTunStateChangeHandler
 
     public async void OnStateChanged(ProTunVpnState state)
     {
-        ConnectionState connectionState = state.ConnectionState;
-
-        await (connectionState switch
+        try
         {
-            Disconnected disconnectedState => HandleDisconnectedStateAsync(disconnectedState),
-            Connecting connectingState => HandleConnectingStateAsync(connectingState),
-            ConnectingToLocalAgent connectingToLocalAgentState => HandleConnectingToLocalAgentAsync(connectingToLocalAgentState),
-            Connected connectedState => HandleConnectedStateAsync(connectedState),
-        });
+            ConnectionState connectionState = state.ConnectionState;
+
+            await (connectionState switch
+            {
+                Disconnected disconnectedState => HandleDisconnectedStateAsync(disconnectedState),
+                Connecting connectingState => HandleConnectingStateAsync(connectingState),
+                ConnectingToLocalAgent connectingToLocalAgentState => HandleConnectingToLocalAgentAsync(connectingToLocalAgentState),
+                Connected connectedState => HandleConnectedStateAsync(connectedState),
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.Error<ConnectionLog>("Failed to handle ProTUN state change.", ex);
+        }
     }
 
     private async Task HandleConnectedStateAsync(Connected connectedState)

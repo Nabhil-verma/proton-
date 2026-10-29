@@ -17,6 +17,8 @@
  * along with ProtonVPN.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+using System;
+using System.IO;
 using FluentAssertions;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using ProtonVPN.Vpn.Management;
@@ -27,16 +29,36 @@ namespace ProtonVPN.Vpn.Tests.Management
     public class OpenVpnManagementPortsTest
     {
         [TestMethod]
-        public void Port_ShouldBeBetween_54000_And_59999()
+        public void Port_ShouldBeInOperatingSystemEphemeralRange()
         {
             // Arrange
             OpenVpnManagementPorts ports = new OpenVpnManagementPorts();
+            (int minimumPort, int maximumPort) = GetEphemeralPortRange();
+
             // Act
             int result = ports.Port();
+
             // Assert
-            result.Should()
-                .BeGreaterThanOrEqualTo(49152).And
-                .BeLessThanOrEqualTo(65535);
+            result.Should().BeInRange(minimumPort, maximumPort);
+        }
+
+        private static (int MinimumPort, int MaximumPort) GetEphemeralPortRange()
+        {
+            if (OperatingSystem.IsLinux())
+            {
+                string[] range = File.ReadAllText("/proc/sys/net/ipv4/ip_local_port_range")
+                    .Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries);
+
+                if (range.Length >= 2 &&
+                    int.TryParse(range[0], out int minimumPort) &&
+                    int.TryParse(range[1], out int maximumPort))
+                {
+                    return (minimumPort, maximumPort);
+                }
+            }
+
+            // Windows and macOS both use the IANA dynamic port range.
+            return (49152, 65535);
         }
     }
 }

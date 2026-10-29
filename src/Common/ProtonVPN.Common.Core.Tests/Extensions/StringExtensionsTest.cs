@@ -159,6 +159,40 @@ public class StringExtensionsTest
     }
 
     [TestMethod]
+    [DataRow("mailto:user@example.com")]
+    [DataRow("ftp://example.com")]
+    [DataRow("file:///C:/Windows")]
+    public void IsHttpUri_ShouldRejectAbsoluteUriWithNonHttpScheme(string input)
+    {
+        bool result = input.IsHttpUri(out Uri? uri);
+
+        Assert.IsFalse(result);
+        Assert.IsNull(uri);
+    }
+
+    [TestMethod]
+    [DataRow("https://protonvpn.com")]
+    [DataRow("http://protonvpn.com")]
+    public void IsHttpUri_ShouldAcceptHttpUri(string input)
+    {
+        bool result = input.IsHttpUri(out Uri? uri);
+
+        Assert.IsTrue(result);
+        Assert.IsNotNull(uri);
+    }
+
+    [TestMethod]
+    public void IsHttpUri_ShouldAddHttps_WhenUriHasNoScheme()
+    {
+        bool result = "protonvpn.com/features".IsHttpUri(out Uri? uri);
+
+        Assert.IsTrue(result);
+        Assert.IsNotNull(uri);
+        Assert.AreEqual(Uri.UriSchemeHttps, uri!.Scheme);
+        Assert.AreEqual("protonvpn.com", uri.Host);
+    }
+
+    [TestMethod]
     [DataRow(null, -1)]
     [DataRow("", -1)]
     [DataRow(" ", -1)]

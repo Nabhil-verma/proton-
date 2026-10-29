@@ -57,8 +57,8 @@ public class GlobalSettingsFileReaderWriter : IGlobalSettingsFileReaderWriter
         return settings;
     }
 
-    public void Write(IDictionary<string, string?> dictionary)
+    public FileOperationResult Write(IDictionary<string, string?> dictionary)
     {
-        _fileReaderWriter.Write(dictionary, _fullFilePath, SERIALIZER);
+        return _fileReaderWriter.Write(dictionary, _fullFilePath, SERIALIZER);
     }
 }

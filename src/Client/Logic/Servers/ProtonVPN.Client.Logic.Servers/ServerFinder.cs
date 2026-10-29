@@ -81,11 +81,11 @@ public partial class ServerFinder : IServerFinder
         lock (_searchBlockLock)
         {
             bool isSearchBlocked = _isSearchBlocked;
+            string normalizedInput = AddMissingHashSymbolIfNeeded(input);
 
-            if (!isSearchBlocked && _serverNameRegex.IsMatch(input) && !IsCacheContaining(input))
+            if (!isSearchBlocked && _serverNameRegex.IsMatch(normalizedInput) && !IsCacheContaining(normalizedInput))
             {
-                input = AddMissingHashSymbolIfNeeded(input);
-                _serverSearchDebouncer.Value.Call(input);
+                _serverSearchDebouncer.Value.Call(normalizedInput);
             }
         }
     }
