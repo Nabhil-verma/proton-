@@ -66,6 +66,33 @@ public class FreeUserTests : FreshSessionSetUp
     }
 
     [Test]
+    [Retry(2)]
+    public void SelectEveryFreeCountryFromSidebar()
+    {
+        CommonUiFlows.EnsureUserIsDisconnected();
+
+        SidebarRobot.NavigateToAllCountriesTab();
+
+        foreach (Country freeCountry in _freeCountries)
+        {
+            TestContext.WriteLine($"Connecting to free country '{freeCountry.GetName()}' from the sidebar.");
+
+            SidebarRobot.ConnectToCountry(freeCountry);
+
+            HomeRobot
+                .Verify.IsConnected()
+                       .ConnectionCardTitleEquals(freeCountry.GetName());
+
+            NetworkUtils.VerifyUserIsConnectedToExpectedCountry(freeCountry);
+
+            SidebarRobot.DisconnectViaCountry(freeCountry);
+
+            HomeRobot
+                .Verify.IsDisconnected();
+        }
+    }
+
+    [Test]
     [Property("TestCaseId", "602339")]
     public void ChangeServerFreeUser()
     {

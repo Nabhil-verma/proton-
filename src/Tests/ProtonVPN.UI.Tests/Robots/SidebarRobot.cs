@@ -20,6 +20,7 @@
 using System;
 using System.Threading;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using FlaUI.Core.Input;
 using FlaUI.Core.Tools;
 using FlaUI.Core.WindowsAPI;
@@ -40,6 +41,7 @@ public class SidebarRobot
     private const int P2P_COUNTRIES_TAB_INDEX = 2;
     private const int TOR_COUNTRIES_TAB_INDEX = 3;
     private const int MINIMUM_EXPECTED_COUNTRY_COUNT = 80;
+    private const int CONNECTION_ITEM_SCROLL_STEP_PERCENT = 5;
 
     private static readonly string _serverLoadInfo = LanguageHelper.GetTranslatedString("Overlay_ServerLoad_Description").Replace("\\n", "\r\n");
     private static readonly string _profilesInfo = LanguageHelper.GetTranslatedString("Overlay_Profile_Description1") + "\r\n\r\n" + LanguageHelper.GetTranslatedString("Overlay_Profile_Description2");
@@ -159,7 +161,7 @@ public class SidebarRobot
     public SidebarRobot ConnectViaServerList(string connectionValue)
     {
         Element countryButton = Element.ByAutomationId($"Connect_to_{connectionValue}");
-        countryButton.ScrollIntoView();
+        ScrollToConnectionItem(countryButton);
         Thread.Sleep(TestConstants.OneSecondTimeout);
         countryButton.ScrollIntoView();
         countryButton.FindChild(Element.ByAutomationId("ConnectionRowHeader")).Click();
@@ -432,6 +434,42 @@ public class SidebarRobot
     {
         SecondaryButton.WaitUntilDisplayed();
         return BaseTest.Window?.FindAllDescendants(SecondaryButton.Condition).Length ?? 0;
+    }
+
+    private void ScrollToConnectionItem(Element connectionItem)
+    {
+        if (IsElementInAutomationTree(connectionItem))
+        {
+            return;
+        }
+
+        // The connection list is virtualized, so rows outside of the viewport are not part of
+        // the automation tree. Scroll through the whole list until the requested row is realized.
+        ConnectionItemsList.Scroll(verticalPercent: 0);
+
+        for (int scrollPercent = 0; scrollPercent <= 100; scrollPercent += CONNECTION_ITEM_SCROLL_STEP_PERCENT)
+        {
+            ConnectionItemsList.Scroll(verticalPercent: scrollPercent);
+            Thread.Sleep(TestConstants.AnimationDelay);
+
+            if (IsElementInAutomationTree(connectionItem))
+            {
+                return;
+            }
+        }
+    }
+
+    private static bool IsElementInAutomationTree(Element element)
+    {
+        try
+        {
+            return BaseTest.Window?.FindFirstDescendant(element.Condition) != null;
+        }
+        catch (COMException)
+        {
+            // The UI can change while the tree is being walked.
+            return false;
+        }
     }
 
     private SidebarRobot NavigateToCountriesTab(int index)
